@@ -49,6 +49,8 @@ const Vector2 dock_top_left = {
 	-(largeHexRadius * 3 - smallHexRadius)
 };
 
+/* Actual implementation
+
 void drawHexagon(Hexagon hex){
 	DrawPolyLines(
 		(Vector2){hex.centerX, hex.centerY},
@@ -63,6 +65,27 @@ void drawHexagon(Hexagon hex){
 		hex.radius*0.80,
 		hex.pixel_color
 	);
+}
+*/
+
+void drawHexagon(Hexagon hex, int index){
+	DrawPolyLines(
+		(Vector2){hex.centerX, hex.centerY},
+		6,
+		hex.radius,
+		0,
+		WHITE	
+	);
+
+	DrawCircleV(
+		(Vector2){hex.centerX, hex.centerY},
+		hex.radius*0.80,
+		hex.pixel_color
+	);
+
+	char index_as_str[5];
+	sprintf(index_as_str, "%d", index);	
+	DrawText(index_as_str, hex.centerX - hex.radius/2, hex.centerY - hex.radius/2, 6, WHITE);
 }
 
 // Function to generate hexagons and store them in an array
@@ -104,6 +127,14 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount) {
     return hexagons;
 }
 
+void process_stuff(HexagonPanel* hp, int index, int is_active){
+	if(is_active){
+		hp->hexagon_pixels[index].pixel_color = BLUE;
+	}else{
+		hp->hexagon_pixels[index].pixel_color = (Color){0, 0, 0, 0};
+	}
+}
+
 int main() {
 
 	InitWindow(1600, 900, "Indexed Hexagon Pixels in Panel");
@@ -111,7 +142,7 @@ int main() {
     // Variable to store the total number of small hexagons
     int hexagonCount = 0;
     
-    // Generate the hexagons and store them in an array
+    // Prepare the Hexagon panels with their position relativ to other and generate "pixels" 
 	HexagonPanel hp1 = {
 		.radius = largeHexRadius,
 		.centerX = 250,
@@ -139,24 +170,42 @@ int main() {
 		.centerY = hp3.centerY + dock_top_right.y,
 		.hexagon_pixels = generateHexagons((Vector2){hp4.centerX, hp4.centerY}, &(hp4.hexagonCount)),
 	};
+	
+	HexagonPanel hp5 = {
+		.radius = largeHexRadius,
+		.centerX = hp4.centerX + dock_top_left.x,
+		.centerY = hp4.centerY + dock_top_left.y,
+		.hexagon_pixels = generateHexagons((Vector2){hp5.centerX, hp5.centerY}, &(hp5.hexagonCount)),
+	};
 
-	hp1.peer_out[1] = &hp2;
-	hp2.peer_in[1] = &hp1;
+	//Hook up the connections from each panel with eachother
+	hp1.peer_out[2] = &hp2;
+	hp2.peer_in[2] = &hp1;
 
+	hp2.peer_out[2] = &hp3;
+	hp3.peer_in[2] = &hp2;
+	
+	hp3.peer_out[0] = &hp4;
+	hp4.peer_in[0] = &hp3;
+	//... and more not connected all yet
+	
+	//since all panels have the same size the hexagonCount need to be saved once from one panel
 	hexagonCount = hp1.hexagonCount;
 
-    // Access and draw each hexagon from the array
 	while(!WindowShouldClose()){
 		BeginDrawing();
+    	// Access and draw each hexagon from the array
     	for (int i = 0; i < hexagonCount; ++i) {
-			if(i <= 42){
-				hp1.hexagon_pixels[i].pixel_color = RED;
-				hp2.hexagon_pixels[i].pixel_color = RED;
-			}
-			drawHexagon(hp1.hexagon_pixels[i]);
-			drawHexagon(hp2.hexagon_pixels[i]);
-			drawHexagon(hp3.hexagon_pixels[i]);
-			drawHexagon(hp4.hexagon_pixels[i]);
+			process_stuff(&hp1, 7, 1);	
+			process_stuff(&hp1, 10, 1);
+			process_stuff(&hp3, 42, 1);	
+			process_stuff(&hp3, 69, 1);
+	
+			drawHexagon(hp1.hexagon_pixels[i], i);
+			drawHexagon(hp2.hexagon_pixels[i], i);
+			drawHexagon(hp3.hexagon_pixels[i], i);
+			drawHexagon(hp4.hexagon_pixels[i], i);
+			drawHexagon(hp5.hexagon_pixels[i], i);
 		}
 		EndDrawing();
 	}
@@ -165,6 +214,8 @@ int main() {
     free(hp1.hexagon_pixels);
     free(hp2.hexagon_pixels);
     free(hp3.hexagon_pixels);
+    free(hp4.hexagon_pixels);
+    free(hp5.hexagon_pixels);
 
     return 0;
 }
