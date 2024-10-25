@@ -3,8 +3,6 @@
 #include <math.h>
 #include <raylib.h>
 
-#define M_PI 3.14159265358979323846
-
 #define largeHexRadius 60.0  // Radius of the large hexagon
 #define smallHexRadius 10.0   // Radius of the smaller hexagons
 
@@ -25,6 +23,31 @@ typedef struct HexagonPanel {
 	struct HexagonPanel *peer_in[3];
 	Hexagon *hexagon_pixels;
 } HexagonPanel;
+
+const Vector2 dock_top_right = {
+	(largeHexRadius * 2 - smallHexRadius),
+	-(largeHexRadius * 3 - smallHexRadius)
+};
+const Vector2 dock_right = {
+	(largeHexRadius * 4 - smallHexRadius * 2),
+	0
+};
+const Vector2 dock_bottom_right = {
+	(largeHexRadius * 2 - smallHexRadius),
+	(largeHexRadius * 3 - smallHexRadius)
+};
+const Vector2 dock_bottom_left = {
+	-(largeHexRadius * 2 - smallHexRadius),
+	(largeHexRadius * 3 - smallHexRadius)
+};
+const Vector2 dock_left = {
+	-(largeHexRadius * 4 - smallHexRadius * 2),
+	0
+};
+const Vector2 dock_top_left = {
+	-(largeHexRadius * 2 - smallHexRadius),
+	-(largeHexRadius * 3 - smallHexRadius)
+};
 
 void drawHexagon(Hexagon hex){
 	DrawPolyLines(
@@ -98,22 +121,22 @@ int main() {
 	
 	HexagonPanel hp2 = {
 		.radius = largeHexRadius,
-		.centerX = hp1.centerX + (largeHexRadius * 2 - smallHexRadius),
-		.centerY = hp1.centerY + (largeHexRadius * 3 - smallHexRadius),
+		.centerX = hp1.centerX + dock_bottom_right.x,
+		.centerY = hp1.centerY + dock_bottom_right.y,
 		.hexagon_pixels = generateHexagons((Vector2){hp2.centerX, hp2.centerY}, &(hp2.hexagonCount)),
 	};
 
 	HexagonPanel hp3 = {
 		.radius = largeHexRadius,
-		.centerX = hp1.centerX - (largeHexRadius * 2 - smallHexRadius),
-		.centerY = hp1.centerY + (largeHexRadius * 3 - smallHexRadius),
+		.centerX = hp2.centerX + dock_bottom_right.x,
+		.centerY = hp2.centerY + dock_bottom_right.y,
 		.hexagon_pixels = generateHexagons((Vector2){hp3.centerX, hp3.centerY}, &(hp3.hexagonCount)),
 	};
 
 	HexagonPanel hp4 = {
 		.radius = largeHexRadius,
-		.centerX = hp2.centerX - (largeHexRadius * 2 - smallHexRadius),
-		.centerY = hp2.centerY + (largeHexRadius * 3 - smallHexRadius),
+		.centerX = hp3.centerX + dock_top_right.x,
+		.centerY = hp3.centerY + dock_top_right.y,
 		.hexagon_pixels = generateHexagons((Vector2){hp4.centerX, hp4.centerY}, &(hp4.hexagonCount)),
 	};
 
