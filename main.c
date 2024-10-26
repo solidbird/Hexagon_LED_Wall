@@ -1,66 +1,93 @@
-//gcc -ggdb main.c -o main -Iincludes -lraylib -lm
-#include <stdio.h>
-#include <stdlib.h>
-#include <raylib.h>
-#include <math.h>
+#include "timer.h"
+#include "hexagon.h"
 
-
-typedef struct HexagonPanel {
-	float radius;
-	Vector2 position;
-	struct HexagonPanel* peers_out[3];
-	struct HexagonPanel* peers_in[3];
-	char* in_out [6];
-} HexagonPanel;
-
-void drawPanel(float radius, Vector2 position){
-	DrawPolyLines(
-		position,
-		6,
-		radius,
-		0,
-		//1,
-		//(Color){rand() % (255 + 1), rand() % (255 + 1), rand() % (255 + 1), 255}
-		WHITE			
-	);
+void process_stuff(HexagonPanel* hp, int index, int is_active){
+	hp->hexagon_pixels[index].pixel_color = BLUE;
+	//hp->hexagon_pixels[index].pixel_color = (Color){0, 0, 0, 0};
 }
 
-int main(){
-	InitWindow(1600, 900, "Test Animation");
+int main() {
+	InitWindow(1600, 900, "Indexed Hexagon Pixels in Panel");
+	//startTimer(&timer, 999);
+
+    // Variable to store the total number of small hexagons
+    int hexagonCount = 0;
+    
+    // Prepare the Hexagon panels with their position relativ to other and generate "pixels" 
+	HexagonPanel hp1 = {
+		.radius = largeHexRadius,
+		.centerX = 250,
+		.centerY = 250,
+		.hexagon_pixels = generateHexagons((Vector2){hp1.centerX, hp1.centerY}, &(hp1.hexagonCount)),
+	};
+	
+	HexagonPanel hp2 = {
+		.radius = largeHexRadius,
+		.centerX = hp1.centerX + dock_bottom_right.x,
+		.centerY = hp1.centerY + dock_bottom_right.y,
+		.hexagon_pixels = generateHexagons((Vector2){hp2.centerX, hp2.centerY}, &(hp2.hexagonCount)),
+	};
+
+	HexagonPanel hp3 = {
+		.radius = largeHexRadius,
+		.centerX = hp2.centerX + dock_bottom_right.x,
+		.centerY = hp2.centerY + dock_bottom_right.y,
+		.hexagon_pixels = generateHexagons((Vector2){hp3.centerX, hp3.centerY}, &(hp3.hexagonCount)),
+	};
+
+	HexagonPanel hp4 = {
+		.radius = largeHexRadius,
+		.centerX = hp3.centerX + dock_top_right.x,
+		.centerY = hp3.centerY + dock_top_right.y,
+		.hexagon_pixels = generateHexagons((Vector2){hp4.centerX, hp4.centerY}, &(hp4.hexagonCount)),
+	};
+	
+	HexagonPanel hp5 = {
+		.radius = largeHexRadius,
+		.centerX = hp4.centerX + dock_top_left.x,
+		.centerY = hp4.centerY + dock_top_left.y,
+		.hexagon_pixels = generateHexagons((Vector2){hp5.centerX, hp5.centerY}, &(hp5.hexagonCount)),
+	};
+
+	//Hook up the connections from each panel with eachother
+	hp1.peer_out[2] = &hp2;
+	hp2.peer_in[2] = &hp1;
+
+	hp2.peer_out[2] = &hp3;
+	hp3.peer_in[2] = &hp2;
+	
+	hp3.peer_out[0] = &hp4;
+	hp4.peer_in[0] = &hp3;
+	//... and more not connected all yet
+	
+	//since all panels have the same size the hexagonCount need to be saved once from one panel
+	hexagonCount = hp1.hexagonCount;
 
 	while(!WindowShouldClose()){
 		BeginDrawing();
-		float rad = 100.0;
-		float half_width = sqrt(-(rad*rad/4) + rad*rad);
-		
-		HexagonPanel hp1 = {
-			.radius = rad,
-			.position = {250, 250},
-		};
-		
-		HexagonPanel hp2 = {
-			.radius = rad,
-			.position = {hp1.position.x + rad * 2, hp1.position.y + rad},
-		};
-
-		HexagonPanel hp3 = {
-			.radius = rad,
-			.position = {hp1.position.x + rad * 2, hp1.position.y - rad},
-		};
-		
-		hp1.peers_out[1] = &hp2;
-		hp2.peers_in[1] = &hp1;
-		
-		hp1.peers_out[0] = &hp3;
-		hp3.peers_in[0] = &hp1;
-		
-		hp3.peers_out[2] = &hp2;
-		hp2.peers_in[2] = &hp3;
-
-		drawPanel(hp1.radius, hp1.position);
-		drawPanel(hp2.radius, hp2.position);
-		drawPanel(hp3.radius, hp3.position);
-		//drawHexagon(50, 50, (Vector2){200 + 50/4 + 50/2, 200 + 50/2});
+    	// Access and draw each hexagon from the array
+    	for (int i = 0; i < hexagonCount; ++i) {
+			process_stuff(&hp1, 7, 1);	
+			process_stuff(&hp1, 10, 1);
+			process_stuff(&hp3, 42, 1);	
+			process_stuff(&hp3, 69, 1);
+	
+			drawHexagon(hp1.hexagon_pixels[i], i);
+			drawHexagon(hp2.hexagon_pixels[i], i);
+			drawHexagon(hp3.hexagon_pixels[i], i);
+			drawHexagon(hp4.hexagon_pixels[i], i);
+			drawHexagon(hp5.hexagon_pixels[i], i);
+		}
 		EndDrawing();
 	}
+
+    // Free the dynamically allocated memory
+    free(hp1.hexagon_pixels);
+    free(hp2.hexagon_pixels);
+    free(hp3.hexagon_pixels);
+    free(hp4.hexagon_pixels);
+    free(hp5.hexagon_pixels);
+
+    return 0;
 }
+
