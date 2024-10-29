@@ -2,9 +2,29 @@
 #include "timer.h"
 #include "hexagon.h"
 
-void process_stuff(HexagonPanel* hp, int index, int is_active){
-	hp->pixels[index].color = BLUE;
-	//hp->pixels[index].pixel_color = (Color){0, 0, 0, 0};
+
+
+int init_buffer(Buffer *buffer){
+	buffer->top = -1;
+}
+
+int push(Buffer *buffer, char value){
+	buffer->data[++buffer->top] = value;	
+}
+
+char pop(Buffer *buffer){
+	char pop_data = buffer->data[buffer->top];	
+	buffer->data[buffer->top--] = '\0';
+
+	return pop_data;
+}
+
+int is_empty(Buffer *buffer){
+	return buffer->top == -1;
+}
+
+int is_full(Buffer *buffer){
+	return buffer->top == 1023;
 }
 
 int main() {
@@ -17,48 +37,57 @@ int main() {
     // Prepare the Hexagon panels with their position relativ to other and generate "pixels" 
 	HexagonPanel hp1 = {
 		.radius = largeHexRadius,
-		.centerX = 250,
-		.centerY = 250,
-		.pixels = generateHexagons((Vector2){hp1.centerX, hp1.centerY}, &(hp1.hexagonCount)),
+		.center.x = 250,
+		.center.y = 250,
+		.pixels = generateHexagons((Vector2){hp1.center.x, hp1.center.y}, &(hp1.hexagonCount)),
 	};
 	
 	HexagonPanel hp2 = {
 		.radius = largeHexRadius,
-		.centerX = hp1.centerX + dock_bottom_right.x,
-		.centerY = hp1.centerY + dock_bottom_right.y,
-		.pixels = generateHexagons((Vector2){hp2.centerX, hp2.centerY}, &(hp2.hexagonCount)),
+		.center.x = hp1.center.x + dock_bottom_right.x,
+		.center.y = hp1.center.y + dock_bottom_right.y,
+		.pixels = generateHexagons((Vector2){hp2.center.x, hp2.center.y}, &(hp2.hexagonCount)),
 	};
 
 	HexagonPanel hp3 = {
 		.radius = largeHexRadius,
-		.centerX = hp2.centerX + dock_bottom_right.x,
-		.centerY = hp2.centerY + dock_bottom_right.y,
-		.pixels = generateHexagons((Vector2){hp3.centerX, hp3.centerY}, &(hp3.hexagonCount)),
+		.center.x = hp2.center.x + dock_bottom_right.x,
+		.center.y = hp2.center.y + dock_bottom_right.y,
+		.pixels = generateHexagons((Vector2){hp3.center.x, hp3.center.y}, &(hp3.hexagonCount)),
 	};
 
 	HexagonPanel hp4 = {
 		.radius = largeHexRadius,
-		.centerX = hp3.centerX + dock_top_right.x,
-		.centerY = hp3.centerY + dock_top_right.y,
-		.pixels = generateHexagons((Vector2){hp4.centerX, hp4.centerY}, &(hp4.hexagonCount)),
+		.center.x = hp3.center.x + dock_top_right.x,
+		.center.y = hp3.center.y + dock_top_right.y,
+		.pixels = generateHexagons((Vector2){hp4.center.x, hp4.center.y}, &(hp4.hexagonCount)),
 	};
 	
 	HexagonPanel hp5 = {
 		.radius = largeHexRadius,
-		.centerX = hp4.centerX + dock_top_left.x,
-		.centerY = hp4.centerY + dock_top_left.y,
-		.pixels = generateHexagons((Vector2){hp5.centerX, hp5.centerY}, &(hp5.hexagonCount)),
+		.center.x = hp4.center.x + dock_top_left.x,
+		.center.y = hp4.center.y + dock_top_left.y,
+		.pixels = generateHexagons((Vector2){hp5.center.x, hp5.center.y}, &(hp5.hexagonCount)),
 	};
 
 	//Hook up the connections from each panel with eachother
+	hp1.peer_out[1] = &hp5;
+	hp5.peer_in[1] = &hp1;
 	hp1.peer_out[2] = &hp2;
 	hp2.peer_in[2] = &hp1;
 
+	hp2.peer_out[0] = &hp5;
+	hp5.peer_in[0] = &hp2;
+	hp2.peer_out[1] = &hp4;
+	hp4.peer_in[1] = &hp2;
 	hp2.peer_out[2] = &hp3;
 	hp3.peer_in[2] = &hp2;
-	
+
 	hp3.peer_out[0] = &hp4;
 	hp4.peer_in[0] = &hp3;
+
+	hp5.peer_out[2] = &hp4;
+	hp4.peer_in[2] = &hp5;
 	//... and more not connected all yet
 	
 	//since all panels have the same size the hexagonCount need to be saved once from one panel
@@ -90,6 +119,13 @@ int main() {
 	pthread_create(&(hp4.thread), NULL, polling_buffers, hp4_args);
 	pthread_create(&(hp5.thread), NULL, polling_buffers, hp5_args);
 
+	init_buffer(&(hp1.buffer_out[0]));
+	init_buffer(&(hp1.buffer_out[1]));
+	init_buffer(&(hp1.buffer_out[2]));
+	init_buffer(&(hp1.buffer_in[0]));
+	init_buffer(&(hp1.buffer_in[1]));
+	init_buffer(&(hp1.buffer_in[2]));
+
 	while(!WindowShouldClose()){
 		BeginDrawing();
     	// Access and draw each hexagon from the array
@@ -99,7 +135,16 @@ int main() {
 			drawHexagon(hp3.pixels[i], i);
 			drawHexagon(hp4.pixels[i], i);
 			drawHexagon(hp5.pixels[i], i);
-			
+
+			/*for(int i = 0; i < 5; i++){
+				push(&(hp1.buffer_out[2]), (char) 49 + i);
+			}
+			for(int i = 0; i < 5; i++){
+				printf("POP: %c", pop(&(hp1.buffer_out[2])));
+			}*/
+
+
+
 		}
 		EndDrawing();
 	}
@@ -116,6 +161,6 @@ int main() {
 	pthread_join(hp3.thread, NULL);
 	pthread_join(hp4.thread, NULL);
 	pthread_join(hp5.thread, NULL);
-
-    return 0;
+    
+	return 0;
 }

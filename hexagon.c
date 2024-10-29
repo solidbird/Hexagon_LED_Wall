@@ -34,7 +34,7 @@ const Vector2 dock_top_left = {
 
 void drawHexagon(Hexagon hex, int index){
 	DrawPolyLines(
-		(Vector2){hex.centerX, hex.centerY},
+		(Vector2){hex.center.x, hex.center.y},
 		6,
 		hex.radius,
 		0,
@@ -42,14 +42,14 @@ void drawHexagon(Hexagon hex, int index){
 	);
 
 	DrawCircleV(
-		(Vector2){hex.centerX, hex.centerY},
+		(Vector2){hex.center.x, hex.center.y},
 		hex.radius * 0.85,
 		hex.color
 	);
 
 	char index_as_str[5];
 	sprintf(index_as_str, "%d", index);	
-	DrawText(index_as_str, hex.centerX - hex.radius/2, hex.centerY - hex.radius/2, 6, WHITE);
+	DrawText(index_as_str, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
 }
 
 // Function to generate hexagons and store them in an array
@@ -75,12 +75,9 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount) {
         int r2 = fmin(maxDistance, -q + maxDistance);
         for (int r = r1; r <= r2; ++r) {
             // Calculate the center of each small hexagon in Cartesian coordinates
-            float centerX = smallHexRadius * (3.0 / 2.0 * q) + center.x;
-            float centerY = smallHexRadius * (sqrt(3) * (r + q / 2.0)) + center.y;
-
             // Store the hexagon in the array
-            hexagons[index].centerX = centerX;
-            hexagons[index].centerY = centerY;
+            hexagons[index].center.x = smallHexRadius * (3.0 / 2.0 * q) + center.x;
+            hexagons[index].center.y = smallHexRadius * (sqrt(3) * (r + q / 2.0)) + center.y;
             hexagons[index].radius = smallHexRadius;
             hexagons[index].color = (Color){0,0,0,0};
 			index++;
@@ -91,27 +88,50 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount) {
 	return hexagons;
 }
 
-void* polling_buffers(void *arg){
-	Polling_args *args = (Polling_args *)arg;
+void process_stuff(HexagonPanel* hp, int index){
 	double time_per_cycle = 1.0 / CLOCK_SPEED_B;
 
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 999999999/10;//time_per_cycle;
+	//hp->pixels[index].pixel_color = (Color){0, 0, 0, 0};
+	hp->pixels[index].color = GREEN;
+	nanosleep(&ts, NULL);
+	hp->pixels[index].color = RED;
+	nanosleep(&ts, NULL);
+}
+
+void* polling_buffers(void *arg){
+	Polling_args *args = (Polling_args *)arg;
+	//TODO: Mostlikely the sending is faster than the popping so segmentation fault in threads
+	//maybe try to not generate data per thread but instead start building master that sends it's own
+	//data through the threads and just pass along the information to the next panel
+
+	//or
+
+	//try to fix this segmentation fault first by just looking whats actually going on but in this case way harder
 
 	while(1){
-		if(args->index == 1){
-			args->hexagon_panel->pixels[args->index].color = GREEN;
-			nanosleep(&ts, NULL);
-			args->hexagon_panel->pixels[args->index].color = RED;
-			nanosleep(&ts, NULL);
+		//Pull for recieving data in input_buffer
+		for(int x = 0; x < 3; x++){
+			if(args->hexagon_panel->peer_in[x] == NULL){ continue; }
+			if(is_empty(&(args->hexagon_panel->buffer_in[x]))){ continue; }
+
+			for(int i = 0; i < 5; i++){
+				//Do something with the data on own panel. PROCESS!!
+				char index_char = pop(&(args->hexagon_panel->buffer_in[x]));
+				process_stuff(args->hexagon_panel, atoi(index_char));
+			}
 		}
-		if(args->index == 2){
-			args->hexagon_panel->pixels[args->index].color = BLUE;
-			nanosleep(&ts, NULL);
-			args->hexagon_panel->pixels[args->index].color = YELLOW;
-			nanosleep(&ts, NULL);
+
+		//Pull for sending data by sending it to the output peers input buffer
+		for(int x = 0; x < 3; x++){
+			if(args->hexagon_panel->peer_out[x] == NULL){ continue; }
+			for(int i = 0; i < 5; i++){
+				push(&(args->hexagon_panel->peer_out[x]->buffer_in[x]), (char) 50 + i);
+			}
 		}
+
 		//TraceLog(LOG_INFO, "EXECUTE: %d", args->index);
 	}
 }

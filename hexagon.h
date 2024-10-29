@@ -11,21 +11,25 @@
 
 // Structure to represent a hexagon
 typedef struct {
-    float centerX;  // X coordinate of the hexagon center
-    float centerY;  // Y coordinate of the hexagon center
+	Vector2 center;
     float radius;   // Radius of the hexagon
 	Color color;
 } Hexagon;
 
+typedef struct {
+	//uint8_t data[1024];
+	char data[1024];
+	int top;
+} Buffer;
+
 typedef struct HexagonPanel {
-	float centerX;
-	float centerY;
+	Vector2 center;
 	float radius;
 	int hexagonCount;
 	struct HexagonPanel *peer_out[3];
 	struct HexagonPanel *peer_in[3];
-	uint8_t buffer_out[3][1024];
-	uint8_t buffer_in[3][1024];
+	Buffer buffer_out[3];
+	Buffer buffer_in[3];
 	Hexagon *pixels;
 	pthread_t thread;
 } HexagonPanel;
@@ -44,11 +48,7 @@ extern const Vector2 dock_top_left;
 
 void drawHexagon(Hexagon hex, int index);
 Hexagon* generateHexagons(Vector2 center, int* hexagonCount);
+void process_stuff(HexagonPanel* hp, int index);
 void* polling_buffers(void *arg);
-
-//typedef struct Polling_args {
-	
-//} Polling_args;
-
 
 #endif
