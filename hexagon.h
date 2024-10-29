@@ -2,6 +2,7 @@
 #define HEXAGON_H
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <pthread.h>
 #include <raylib.h>
 
@@ -23,6 +24,8 @@ typedef struct HexagonPanel {
 	int hexagonCount;
 	struct HexagonPanel *peer_out[3];
 	struct HexagonPanel *peer_in[3];
+	uint8_t buffer_out[3][1024];
+	uint8_t buffer_in[3][1024];
 	Hexagon *pixels;
 	pthread_t thread;
 } HexagonPanel;

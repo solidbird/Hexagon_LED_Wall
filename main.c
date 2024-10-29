@@ -89,7 +89,7 @@ int main() {
 	pthread_create(&(hp3.thread), NULL, polling_buffers, hp3_args);
 	pthread_create(&(hp4.thread), NULL, polling_buffers, hp4_args);
 	pthread_create(&(hp5.thread), NULL, polling_buffers, hp5_args);
-	
+
 	while(!WindowShouldClose()){
 		BeginDrawing();
     	// Access and draw each hexagon from the array
@@ -99,6 +99,7 @@ int main() {
 			drawHexagon(hp3.pixels[i], i);
 			drawHexagon(hp4.pixels[i], i);
 			drawHexagon(hp5.pixels[i], i);
+			
 		}
 		EndDrawing();
 	}
@@ -118,4 +119,3 @@ int main() {
 
     return 0;
 }
-

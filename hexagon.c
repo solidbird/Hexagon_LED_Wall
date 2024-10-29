@@ -1,7 +1,11 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include "hexagon.h"
+
+#define CLOCK_SPEED_A 80000000
+#define CLOCK_SPEED_B 240000000
 
 const Vector2 dock_top_right = {
 	(largeHexRadius * 2 - smallHexRadius),
@@ -28,25 +32,6 @@ const Vector2 dock_top_left = {
 	-(largeHexRadius * 3 - smallHexRadius)
 };
 
-/* Non-Debugging implementation
-
-void drawHexagon(Hexagon hex){
-	DrawPolyLines(
-		(Vector2){hex.centerX, hex.centerY},
-		6,
-		hex.radius,
-		0,
-		WHITE	
-	);
-
-	DrawCircleV(
-		(Vector2){hex.centerX, hex.centerY},
-		hex.radius*0.80,
-		hex.pixel_color
-	);
-}
-*/
-
 void drawHexagon(Hexagon hex, int index){
 	DrawPolyLines(
 		(Vector2){hex.centerX, hex.centerY},
@@ -58,7 +43,7 @@ void drawHexagon(Hexagon hex, int index){
 
 	DrawCircleV(
 		(Vector2){hex.centerX, hex.centerY},
-		hex.radius*0.80,
+		hex.radius * 0.85,
 		hex.color
 	);
 
@@ -108,9 +93,25 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount) {
 
 void* polling_buffers(void *arg){
 	Polling_args *args = (Polling_args *)arg;
+	double time_per_cycle = 1.0 / CLOCK_SPEED_B;
+
+	struct timespec ts;
+	ts.tv_sec = 0;
+	ts.tv_nsec = 999999999/10;//time_per_cycle;
 
 	while(1){
-		args->hexagon_panel->pixels[args->index].color = GREEN;
-		TraceLog(LOG_INFO, "EXECUTE: %d", args->index);	
+		if(args->index == 1){
+			args->hexagon_panel->pixels[args->index].color = GREEN;
+			nanosleep(&ts, NULL);
+			args->hexagon_panel->pixels[args->index].color = RED;
+			nanosleep(&ts, NULL);
+		}
+		if(args->index == 2){
+			args->hexagon_panel->pixels[args->index].color = BLUE;
+			nanosleep(&ts, NULL);
+			args->hexagon_panel->pixels[args->index].color = YELLOW;
+			nanosleep(&ts, NULL);
+		}
+		//TraceLog(LOG_INFO, "EXECUTE: %d", args->index);
 	}
 }
