@@ -32,6 +32,32 @@ const Vector2 dock_top_left = {
 	-(largeHexRadius * 3 - smallHexRadius)
 };
 
+int push(Buffer *buffer, char value){
+	if(is_full(buffer)){ return 0; }
+	buffer->data[++buffer->top] = value;
+	return 1;
+}
+
+int init_buffer(Buffer *buffer){
+	buffer->top = -1;
+}
+
+int pop(Buffer *buffer){
+	if(is_empty(buffer)) { return 0; }
+	char pop_data = buffer->data[buffer->top];	
+	buffer->data[buffer->top--] = '\0';
+
+	return pop_data;
+}
+
+int is_empty(Buffer *buffer){
+	return buffer->top == -1;
+}
+
+int is_full(Buffer *buffer){
+	return buffer->top == 1023;
+}
+
 void drawHexagon(Hexagon hex, int index){
 	DrawPolyLines(
 		(Vector2){hex.center.x, hex.center.y},
@@ -93,7 +119,7 @@ void process_stuff(HexagonPanel* hp, int index){
 
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 999999999/10;//time_per_cycle;
+	ts.tv_nsec = 999999999/1;//time_per_cycle;
 	//hp->pixels[index].pixel_color = (Color){0, 0, 0, 0};
 	hp->pixels[index].color = GREEN;
 	nanosleep(&ts, NULL);
@@ -119,16 +145,15 @@ void* polling_buffers(void *arg){
 
 			for(int i = 0; i < 5; i++){
 				//Do something with the data on own panel. PROCESS!!
-				char index_char = pop(&(args->hexagon_panel->buffer_in[x]));
-				process_stuff(args->hexagon_panel, atoi(index_char));
+				process_stuff(args->hexagon_panel, pop(&(args->hexagon_panel->buffer_in[x])));
 			}
 		}
 
 		//Pull for sending data by sending it to the output peers input buffer
 		for(int x = 0; x < 3; x++){
 			if(args->hexagon_panel->peer_out[x] == NULL){ continue; }
-			for(int i = 0; i < 5; i++){
-				push(&(args->hexagon_panel->peer_out[x]->buffer_in[x]), (char) 50 + i);
+			for(int i = 0; i < 100; i++){
+				push(&(args->hexagon_panel->peer_out[x]->buffer_in[x]), i);
 			}
 		}
 

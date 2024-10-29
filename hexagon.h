@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct {
 	//uint8_t data[1024];
-	char data[1024];
+	int data[1024];
 	int top;
 } Buffer;
 
@@ -45,6 +45,12 @@ extern const Vector2 dock_bottom_right;
 extern const Vector2 dock_bottom_left;
 extern const Vector2 dock_left;
 extern const Vector2 dock_top_left;
+
+int init_buffer(Buffer *buffer);
+int push(Buffer *buffer, char value);
+int pop(Buffer *buffer);
+int is_empty(Buffer *buffer);
+int is_full(Buffer *buffer);
 
 void drawHexagon(Hexagon hex, int index);
 Hexagon* generateHexagons(Vector2 center, int* hexagonCount);

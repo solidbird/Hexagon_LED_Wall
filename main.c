@@ -2,31 +2,6 @@
 #include "timer.h"
 #include "hexagon.h"
 
-
-
-int init_buffer(Buffer *buffer){
-	buffer->top = -1;
-}
-
-int push(Buffer *buffer, char value){
-	buffer->data[++buffer->top] = value;	
-}
-
-char pop(Buffer *buffer){
-	char pop_data = buffer->data[buffer->top];	
-	buffer->data[buffer->top--] = '\0';
-
-	return pop_data;
-}
-
-int is_empty(Buffer *buffer){
-	return buffer->top == -1;
-}
-
-int is_full(Buffer *buffer){
-	return buffer->top == 1023;
-}
-
 int main() {
 	InitWindow(1600, 900, "Indexed Hexagon Pixels in Panel");
 	//startTimer(&timer, 999);
