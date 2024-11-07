@@ -6,13 +6,19 @@
 #include <pthread.h>
 #include <raylib.h>
 
-#define largeHexRadius 60.0  // Radius of the large hexagon
-#define smallHexRadius 10.0   // Radius of the smaller hexagons
+#define largeHexRadius 120.0  // Radius of the large hexagon
+#define smallHexRadius 20.0   // Radius of the smaller hexagons
+
+typedef struct {
+	int r;
+	int q;
+} Coordinates;
 
 // Structure to represent a hexagon
 typedef struct {
 	Vector2 center;
     float radius;   // Radius of the hexagon
+	Coordinates coordinates;
 	Color color;
 } Hexagon;
 
@@ -32,6 +38,7 @@ typedef struct HexagonPanel {
 	Buffer buffer_in[3];
 	Hexagon *pixels;
 	pthread_t thread;
+	pthread_t thread_screen;
 } HexagonPanel;
 
 typedef struct {
@@ -55,6 +62,7 @@ int is_full(Buffer *buffer);
 void drawHexagon(Hexagon hex, int index);
 Hexagon* generateHexagons(Vector2 center, int* hexagonCount);
 void process_stuff(HexagonPanel* hp, int index);
+void clear_screen(HexagonPanel* hp);
 void* polling_buffers(void *arg);
 
 #endif

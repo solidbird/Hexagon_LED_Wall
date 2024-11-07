@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
+#include <string.h>
 #include "hexagon.h"
 
 #define CLOCK_SPEED_A 80000000
@@ -69,13 +70,25 @@ void drawHexagon(Hexagon hex, int index){
 
 	DrawCircleV(
 		(Vector2){hex.center.x, hex.center.y},
-		hex.radius * 0.85,
+		hex.radius* 0.85,
 		hex.color
 	);
 
 	char index_as_str[5];
 	sprintf(index_as_str, "%d", index);	
-	DrawText(index_as_str, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
+	
+	char coord_r[5];
+	char coord_q[5];
+	char dest[12];
+
+	sprintf(coord_r, "%d", hex.coordinates.r);
+	sprintf(coord_q, "%d", hex.coordinates.q);
+	strcpy(dest, coord_r);
+	strcat(dest, ",");
+	strcat(dest, coord_q);
+	
+	DrawText(dest, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
+	//DrawText(index_as_str, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
 }
 
 // Function to generate hexagons and store them in an array
@@ -106,6 +119,8 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount) {
             hexagons[index].center.y = smallHexRadius * (sqrt(3) * (r + q / 2.0)) + center.y;
             hexagons[index].radius = smallHexRadius;
             hexagons[index].color = (Color){0,0,0,0};
+			hexagons[index].coordinates.r = r;
+			hexagons[index].coordinates.q = q;
 			index++;
 		}
 	}
