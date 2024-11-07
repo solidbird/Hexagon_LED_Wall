@@ -2,10 +2,26 @@
 #include "timer.h"
 #include "hexagon.h"
 
-int main() {
-	InitWindow(1600, 900, "Indexed Hexagon Pixels in Panel");
+#define SCREEN_WIDTH 1600
+#define SCREEN_HEIGHT 900
+
+Camera2D camera_setup(){
+	Camera2D camera = { 0 };
+	camera.target = (Vector2) {SCREEN_WIDTH, SCREEN_HEIGHT};
+	camera.offset = (Vector2) {SCREEN_WIDTH, SCREEN_HEIGHT};
+	camera.rotation = 0.0f;
+	camera.zoom = 1.0f;
+
+	return camera;
+}
+
+
+int main(int argc, char** argv) {
+	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Indexed Hexagon Pixels in Panel");
+	SetTargetFPS(60);
 	//startTimer(&timer, 999);
 
+	Camera2D camera = camera_setup();
     // Variable to store the total number of small hexagons
     int hexagonCount = 0;
     
@@ -89,20 +105,46 @@ int main() {
 	hp5_args->index = 5;
 
 	pthread_create(&(hp1.thread), NULL, polling_buffers, hp1_args);
+	//pthread_create(&(hp1.thread_screen), NULL, clear_screen, hp1_args);
 	pthread_create(&(hp2.thread), NULL, polling_buffers, hp2_args);
+	//pthread_create(&(hp2.thread_screen), NULL, clear_screen, hp2_args);
 	pthread_create(&(hp3.thread), NULL, polling_buffers, hp3_args);
+	//pthread_create(&(hp3.thread_screen), NULL, clear_screen, hp3_args);
 	pthread_create(&(hp4.thread), NULL, polling_buffers, hp4_args);
+	//pthread_create(&(hp4.thread_screen), NULL, clear_screen, hp4_args);
 	pthread_create(&(hp5.thread), NULL, polling_buffers, hp5_args);
+	//pthread_create(&(hp5.thread_screen), NULL, clear_screen, hp5_args);
 
-	init_buffer(&(hp1.buffer_out[0]));
-	init_buffer(&(hp1.buffer_out[1]));
-	init_buffer(&(hp1.buffer_out[2]));
-	init_buffer(&(hp1.buffer_in[0]));
-	init_buffer(&(hp1.buffer_in[1]));
-	init_buffer(&(hp1.buffer_in[2]));
+
+	for(int i = 0; i < 3; i++){
+		init_buffer(&(hp1.buffer_out[i]));
+		init_buffer(&(hp1.buffer_in[i]));
+
+		init_buffer(&(hp2.buffer_out[i]));
+		init_buffer(&(hp2.buffer_in[i]));
+
+		init_buffer(&(hp3.buffer_out[i]));
+		init_buffer(&(hp3.buffer_in[i]));
+
+		init_buffer(&(hp4.buffer_out[i]));
+		init_buffer(&(hp4.buffer_in[i]));
+
+		init_buffer(&(hp5.buffer_out[i]));
+		init_buffer(&(hp5.buffer_in[i]));
+	}
 
 	while(!WindowShouldClose()){
+		ClearBackground(BLACK);
 		BeginDrawing();
+
+		if(IsKeyDown(KEY_W)) camera.target.y -= 5.0f;
+		if(IsKeyDown(KEY_S)) camera.target.y += 5.0f;
+		if(IsKeyDown(KEY_A)) camera.target.x -= 5.0f;
+		if(IsKeyDown(KEY_D)) camera.target.x += 5.0f;
+		if(IsKeyDown(KEY_PERIOD)) camera.zoom += 0.01f;
+		if(IsKeyDown(KEY_COMMA)) camera.zoom -= 0.01f;
+
+		BeginMode2D(camera);
     	// Access and draw each hexagon from the array
     	for (int i = 0; i < hexagonCount; ++i) {
 			drawHexagon(hp1.pixels[i], i);
@@ -121,6 +163,7 @@ int main() {
 
 
 		}
+		EndMode2D();
 		EndDrawing();
 	}
 
@@ -136,6 +179,13 @@ int main() {
 	pthread_join(hp3.thread, NULL);
 	pthread_join(hp4.thread, NULL);
 	pthread_join(hp5.thread, NULL);
+    	
+	//pthread_join(hp1.thread_screen, NULL);
+	//pthread_join(hp2.thread_screen, NULL);
+	//pthread_join(hp3.thread_screen, NULL);
+	//pthread_join(hp4.thread_screen, NULL);
+	//pthread_join(hp5.thread_screen, NULL);
     
+
 	return 0;
 }
