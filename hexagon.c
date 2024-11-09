@@ -59,19 +59,19 @@ int is_full(Buffer *buffer){
 	return buffer->top == 1023;
 }
 
-void drawHexagon(Hexagon hex, int index){
+void drawHexagon(Hexagon* hex, int index){
 	DrawPolyLines(
-		(Vector2){hex.center.x, hex.center.y},
+		(Vector2){hex->center.x, hex->center.y},
 		6,
-		hex.radius,
+		hex->radius,
 		0,
 		WHITE	
 	);
 
 	DrawCircleV(
-		(Vector2){hex.center.x, hex.center.y},
-		hex.radius* 0.85,
-		hex.color
+		(Vector2){hex->center.x, hex->center.y},
+		hex->radius* 0.85,
+		hex->color
 	);
 
 	char index_as_str[5];
@@ -81,13 +81,13 @@ void drawHexagon(Hexagon hex, int index){
 	char coord_q[5];
 	char dest[12];
 
-	sprintf(coord_r, "%d", hex.coordinates.r);
-	sprintf(coord_q, "%d", hex.coordinates.q);
+	sprintf(coord_r, "%d", hex->coordinates.r);
+	sprintf(coord_q, "%d", hex->coordinates.q);
 	strcpy(dest, coord_r);
 	strcat(dest, ",");
 	strcat(dest, coord_q);
 	
-	DrawText(dest, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
+	DrawText(dest, hex->center.x - hex->radius/2, hex->center.y - hex->radius/2, 6, WHITE);
 	//DrawText(index_as_str, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
 }
 

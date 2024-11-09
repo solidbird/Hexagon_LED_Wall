@@ -15,7 +15,6 @@ Camera2D camera_setup(){
 	return camera;
 }
 
-
 int main(int argc, char** argv) {
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Indexed Hexagon Pixels in Panel");
 	SetTargetFPS(60);
@@ -26,111 +25,82 @@ int main(int argc, char** argv) {
     int hexagonCount = 0;
     
     // Prepare the Hexagon panels with their position relativ to other and generate "pixels" 
-	HexagonPanel hp1 = {
+	HexagonPanel hp[5];
+	Vector2 last_panel_center = {0};
+
+	hp[0] = (HexagonPanel){
 		.radius = largeHexRadius,
 		.center.x = 250,
 		.center.y = 250,
-		.pixels = generateHexagons((Vector2){hp1.center.x, hp1.center.y}, &(hp1.hexagonCount)),
 	};
+	hp[0].pixels = generateHexagons((Vector2){hp[0].center.x, hp[0].center.y}, &(hp[0].hexagonCount)),
+	last_panel_center = hp[0].center;
 	
-	HexagonPanel hp2 = {
+	hp[1] = (HexagonPanel){
 		.radius = largeHexRadius,
-		.center.x = hp1.center.x + dock_bottom_right.x,
-		.center.y = hp1.center.y + dock_bottom_right.y,
-		.pixels = generateHexagons((Vector2){hp2.center.x, hp2.center.y}, &(hp2.hexagonCount)),
+		.center.x = last_panel_center.x + dock_bottom_right.x,
+		.center.y = last_panel_center.y + dock_bottom_right.y,
 	};
+	hp[1].pixels = generateHexagons((Vector2){hp[1].center.x, hp[1].center.y}, &(hp[1].hexagonCount)),
+	last_panel_center = hp[1].center;
 
-	HexagonPanel hp3 = {
+	hp[2] = (HexagonPanel){
 		.radius = largeHexRadius,
-		.center.x = hp2.center.x + dock_bottom_right.x,
-		.center.y = hp2.center.y + dock_bottom_right.y,
-		.pixels = generateHexagons((Vector2){hp3.center.x, hp3.center.y}, &(hp3.hexagonCount)),
+		.center.x = last_panel_center.x + dock_bottom_right.x,
+		.center.y = last_panel_center.y + dock_bottom_right.y,
 	};
+	hp[2].pixels = generateHexagons((Vector2){hp[2].center.x, hp[2].center.y}, &(hp[2].hexagonCount)),
+	last_panel_center = hp[2].center;
 
-	HexagonPanel hp4 = {
+	hp[3] = (HexagonPanel){
 		.radius = largeHexRadius,
-		.center.x = hp3.center.x + dock_top_right.x,
-		.center.y = hp3.center.y + dock_top_right.y,
-		.pixels = generateHexagons((Vector2){hp4.center.x, hp4.center.y}, &(hp4.hexagonCount)),
+		.center.x = last_panel_center.x + dock_top_right.x,
+		.center.y = last_panel_center.y + dock_top_right.y,
 	};
+	hp[3].pixels = generateHexagons((Vector2){hp[3].center.x, hp[3].center.y}, &(hp[3].hexagonCount)),
+	last_panel_center = hp[3].center;
 	
-	HexagonPanel hp5 = {
+	hp[4] = (HexagonPanel){
 		.radius = largeHexRadius,
-		.center.x = hp4.center.x + dock_top_left.x,
-		.center.y = hp4.center.y + dock_top_left.y,
-		.pixels = generateHexagons((Vector2){hp5.center.x, hp5.center.y}, &(hp5.hexagonCount)),
+		.center.x = last_panel_center.x + dock_top_left.x,
+		.center.y = last_panel_center.y + dock_top_left.y,
 	};
+	hp[4].pixels = generateHexagons((Vector2){hp[4].center.x, hp[4].center.y}, &(hp[4].hexagonCount)),
 
 	//Hook up the connections from each panel with eachother
-	hp1.peer_out[1] = &hp5;
-	hp5.peer_in[1] = &hp1;
-	hp1.peer_out[2] = &hp2;
-	hp2.peer_in[2] = &hp1;
+	hp[0].peer_out[1] = &hp[4];
+	hp[4].peer_in[1] = &hp[0];
+	hp[0].peer_out[2] = &hp[1];
+	hp[1].peer_in[2] = &hp[0];
 
-	hp2.peer_out[0] = &hp5;
-	hp5.peer_in[0] = &hp2;
-	hp2.peer_out[1] = &hp4;
-	hp4.peer_in[1] = &hp2;
-	hp2.peer_out[2] = &hp3;
-	hp3.peer_in[2] = &hp2;
+	hp[1].peer_out[0] = &hp[4];
+	hp[4].peer_in[0] = &hp[1];
+	hp[1].peer_out[1] = &hp[3];
+	hp[3].peer_in[1] = &hp[1];
+	hp[1].peer_out[2] = &hp[2];
+	hp[2].peer_in[2] = &hp[1];
 
-	hp3.peer_out[0] = &hp4;
-	hp4.peer_in[0] = &hp3;
+	hp[2].peer_out[0] = &hp[3];
+	hp[3].peer_in[0] = &hp[2];
 
-	hp5.peer_out[2] = &hp4;
-	hp4.peer_in[2] = &hp5;
+	hp[4].peer_out[2] = &hp[3];
+	hp[3].peer_in[2] = &hp[4];
 	//... and more not connected all yet
 	
 	//since all panels have the same size the hexagonCount need to be saved once from one panel
-	hexagonCount = hp1.hexagonCount;
 
-	Polling_args* hp1_args = (Polling_args*) malloc(sizeof(Polling_args));
-	hp1_args->hexagon_panel = &hp1;
-	hp1_args->index = 1;
-	
-	Polling_args* hp2_args = (Polling_args*) malloc(sizeof(Polling_args));
-	hp2_args->hexagon_panel = &hp2;
-	hp2_args->index = 2;
-	
-	Polling_args* hp3_args = (Polling_args*) malloc(sizeof(Polling_args));
-	hp3_args->hexagon_panel = &hp3;
-	hp3_args->index = 3;
-	
-	Polling_args* hp4_args = (Polling_args*) malloc(sizeof(Polling_args));
-	hp4_args->hexagon_panel = &hp4;
-	hp4_args->index = 4;
+	Polling_args *hp_args[5];
+	for(int i = 0; i < 5; i++){
+		hp_args[i] = (Polling_args*) malloc(sizeof(Polling_args));
+		hp_args[i]->hexagon_panel = &hp[i];
+		hp_args[i]->index = i;
 
-	Polling_args* hp5_args = (Polling_args*) malloc(sizeof(Polling_args));
-	hp5_args->hexagon_panel = &hp5;
-	hp5_args->index = 5;
-
-	pthread_create(&(hp1.thread), NULL, polling_buffers, hp1_args);
-	//pthread_create(&(hp1.thread_screen), NULL, clear_screen, hp1_args);
-	pthread_create(&(hp2.thread), NULL, polling_buffers, hp2_args);
-	//pthread_create(&(hp2.thread_screen), NULL, clear_screen, hp2_args);
-	pthread_create(&(hp3.thread), NULL, polling_buffers, hp3_args);
-	//pthread_create(&(hp3.thread_screen), NULL, clear_screen, hp3_args);
-	pthread_create(&(hp4.thread), NULL, polling_buffers, hp4_args);
-	//pthread_create(&(hp4.thread_screen), NULL, clear_screen, hp4_args);
-	pthread_create(&(hp5.thread), NULL, polling_buffers, hp5_args);
-	//pthread_create(&(hp5.thread_screen), NULL, clear_screen, hp5_args);
-
-
-	for(int i = 0; i < 3; i++){
-		init_buffer(&(hp1.buffer_out[i]));
-		init_buffer(&(hp1.buffer_in[i]));
-
-		init_buffer(&(hp2.buffer_out[i]));
-		init_buffer(&(hp2.buffer_in[i]));
-
-		init_buffer(&(hp3.buffer_out[i]));
-		init_buffer(&(hp3.buffer_in[i]));
-
-		init_buffer(&(hp4.buffer_out[i]));
-		init_buffer(&(hp4.buffer_in[i]));
-
-		init_buffer(&(hp5.buffer_out[i]));
-		init_buffer(&(hp5.buffer_in[i]));
+		for(int x = 0; x < 3; x++){
+			init_buffer(&(hp[i].buffer_out[x]));
+			init_buffer(&(hp[i].buffer_in[x]));
+		}
+		
+		pthread_create(&(hp[i].thread), NULL, polling_buffers, hp_args[i]);
 	}
 
 	while(!WindowShouldClose()){
@@ -146,46 +116,20 @@ int main(int argc, char** argv) {
 
 		BeginMode2D(camera);
     	// Access and draw each hexagon from the array
-    	for (int i = 0; i < hexagonCount; ++i) {
-			drawHexagon(hp1.pixels[i], i);
-			drawHexagon(hp2.pixels[i], i);
-			drawHexagon(hp3.pixels[i], i);
-			drawHexagon(hp4.pixels[i], i);
-			drawHexagon(hp5.pixels[i], i);
-
-			/*for(int i = 0; i < 5; i++){
-				push(&(hp1.buffer_out[2]), (char) 49 + i);
+		for(int x = 0; x < 5; x++){
+	    	for (int i = 0; i < 127; ++i) {
+				drawHexagon(&(hp[x].pixels[i]), i);
 			}
-			for(int i = 0; i < 5; i++){
-				printf("POP: %c", pop(&(hp1.buffer_out[2])));
-			}*/
-
-
-
 		}
 		EndMode2D();
 		EndDrawing();
 	}
 
     // Free the dynamically allocated memory
-    free(hp1.pixels);
-    free(hp2.pixels);
-    free(hp3.pixels);
-    free(hp4.pixels);
-    free(hp5.pixels);
-
-	pthread_join(hp1.thread, NULL);
-	pthread_join(hp2.thread, NULL);
-	pthread_join(hp3.thread, NULL);
-	pthread_join(hp4.thread, NULL);
-	pthread_join(hp5.thread, NULL);
-    	
-	//pthread_join(hp1.thread_screen, NULL);
-	//pthread_join(hp2.thread_screen, NULL);
-	//pthread_join(hp3.thread_screen, NULL);
-	//pthread_join(hp4.thread_screen, NULL);
-	//pthread_join(hp5.thread_screen, NULL);
-    
-
+	for(int i = 0; i < 5; i++){
+    	free(hp[i].pixels);
+		pthread_join(hp[i].thread, NULL);
+	}
+	
 	return 0;
 }

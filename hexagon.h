@@ -59,7 +59,7 @@ int pop(Buffer *buffer);
 int is_empty(Buffer *buffer);
 int is_full(Buffer *buffer);
 
-void drawHexagon(Hexagon hex, int index);
+void drawHexagon(Hexagon* hex, int index);
 Hexagon* generateHexagons(Vector2 center, int* hexagonCount);
 void process_stuff(HexagonPanel* hp, int index);
 void clear_screen(HexagonPanel* hp);
