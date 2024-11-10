@@ -91,16 +91,16 @@ int main(int argc, char** argv) {
 
 	Polling_args *hp_args[5];
 	for(int i = 0; i < 5; i++){
-		hp_args[i] = (Polling_args*) malloc(sizeof(Polling_args));
-		hp_args[i]->hexagon_panel = &hp[i];
-		hp_args[i]->index = i;
-
 		for(int x = 0; x < 3; x++){
+			hp_args[i] = (Polling_args*) malloc(sizeof(Polling_args));
+			hp_args[i]->hexagon_panel = &hp[i];
+			hp_args[i]->buffer_index = x;
+
 			init_buffer(&(hp[i].buffer_out[x]));
 			init_buffer(&(hp[i].buffer_in[x]));
+			pthread_create(&(hp[i].buffer_out[x].thread), NULL, sender, hp_args[i]);
+			pthread_create(&(hp[i].buffer_in[x].thread), NULL, reciever, hp_args[i]);
 		}
-		
-		pthread_create(&(hp[i].thread), NULL, polling_buffers, hp_args[i]);
 	}
 
 	while(!WindowShouldClose()){
@@ -128,7 +128,10 @@ int main(int argc, char** argv) {
     // Free the dynamically allocated memory
 	for(int i = 0; i < 5; i++){
     	free(hp[i].pixels);
-		pthread_join(hp[i].thread, NULL);
+		for(int x = 0; x < 3; x++){
+			pthread_join(hp[i].buffer_out[x].thread, NULL);
+			pthread_join(hp[i].buffer_in[x].thread, NULL);
+		}
 	}
 	
 	return 0;

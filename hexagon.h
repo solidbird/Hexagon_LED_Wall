@@ -24,6 +24,10 @@ typedef struct {
 
 typedef struct {
 	//uint8_t data[1024];
+	pthread_mutex_t buffer_mutex;
+	pthread_cond_t bufferNotEmpty;
+	pthread_cond_t bufferNotFull;
+	pthread_t thread;
 	int data[1024];
 	int top;
 } Buffer;
@@ -37,13 +41,11 @@ typedef struct HexagonPanel {
 	Buffer buffer_out[3];
 	Buffer buffer_in[3];
 	Hexagon *pixels;
-	pthread_t thread;
-	pthread_t thread_screen;
 } HexagonPanel;
 
 typedef struct {
 	HexagonPanel* hexagon_panel;
-	int index;
+	int buffer_index;
 } Polling_args;
 
 extern const Vector2 dock_top_right;
@@ -64,5 +66,7 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount);
 void process_stuff(HexagonPanel* hp, int index);
 void clear_screen(HexagonPanel* hp);
 void* polling_buffers(void *arg);
+void* sender(void *arg);
+void* reciever(void *arg);
 
 #endif
