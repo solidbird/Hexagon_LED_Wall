@@ -35,6 +35,7 @@ typedef struct {
 typedef struct HexagonPanel {
 	Vector2 center;
 	float radius;
+	int index;
 	int hexagonCount;
 	struct HexagonPanel *peer_out[3];
 	struct HexagonPanel *peer_in[3];
@@ -55,18 +56,10 @@ extern const Vector2 dock_bottom_left;
 extern const Vector2 dock_left;
 extern const Vector2 dock_top_left;
 
-int init_buffer(Buffer *buffer);
-int push(Buffer *buffer, char value);
-int pop(Buffer *buffer);
-int is_empty(Buffer *buffer);
-int is_full(Buffer *buffer);
-
 void drawHexagon(Hexagon* hex, int index);
 Hexagon* generateHexagons(Vector2 center, int* hexagonCount);
 void process_stuff(HexagonPanel* hp, int index);
 void clear_screen(HexagonPanel* hp);
 void* polling_buffers(void *arg);
-void* sender(void *arg);
-void* reciever(void *arg);
 
 #endif

@@ -33,31 +33,7 @@ const Vector2 dock_top_left = {
 	-(largeHexRadius * 3 - smallHexRadius)
 };
 
-int push(Buffer *buffer, char value){
-	if(is_full(buffer)){ return 0; }
-	buffer->data[++buffer->top] = value;
-	return 1;
-}
 
-int init_buffer(Buffer *buffer){
-	buffer->top = -1;
-}
-
-int pop(Buffer *buffer){
-	if(is_empty(buffer)) { return 0; }
-	char pop_data = buffer->data[buffer->top];	
-	buffer->data[buffer->top--] = '\0';
-
-	return pop_data;
-}
-
-int is_empty(Buffer *buffer){
-	return buffer->top == -1;
-}
-
-int is_full(Buffer *buffer){
-	return buffer->top == 1023;
-}
 
 void drawHexagon(Hexagon* hex, int index){
 	DrawPolyLines(
@@ -138,72 +114,8 @@ void process_stuff(HexagonPanel* hp, int index){
 	//hp->pixels[index].pixel_color = (Color){0, 0, 0, 0};
 	hp->pixels[index].color = GREEN;
 	nanosleep(&ts, NULL);
-	hp->pixels[index].color = RED;
-	nanosleep(&ts, NULL);
-}
-
-void* sender(void *arg){
-	Polling_args *args = (Polling_args *)arg;
-	int index = (int)args->buffer_index;
-
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 50;//time_per_cycle;	
-
-	int data = 0;
-
-	while(1){
-		if(args->hexagon_panel->peer_out[index] == NULL){ continue; }
-
-		Buffer* send_buffer = &(args->hexagon_panel->peer_out[index]->buffer_in[index]);
-	
-		pthread_mutex_lock(
-			&(send_buffer->buffer_mutex)
-		);
-
-		while(is_full(send_buffer)){
-			pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-		}
-		push(send_buffer, data);
-
-		pthread_cond_signal(&(send_buffer->bufferNotEmpty));
-		pthread_mutex_unlock(
-			&(send_buffer->buffer_mutex)
-		);
-		data = (data + 1) % 127;
-
-		nanosleep(&ts, NULL);
-		//usleep(500000L);
-	}
-}
-
-void* reciever(void *arg){
-	Polling_args *args = (Polling_args *)arg;
-	int index = (int)args->buffer_index;
-	Buffer* reciever_buffer = &(args->hexagon_panel->buffer_in[index]);
-	
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 50;//time_per_cycle;
-	
-	while(1){
-		pthread_mutex_lock(
-			&(reciever_buffer->buffer_mutex)
-		);
-		
-		while(is_empty(reciever_buffer)){
-			pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
-		}
-		process_stuff(args->hexagon_panel, pop(reciever_buffer));
-
-		pthread_cond_signal(&(reciever_buffer->bufferNotEmpty));
-		pthread_mutex_unlock(
-			&(reciever_buffer->buffer_mutex)
-		);
-
-		//hp->pixels[index].pixel_color = (Color){0, 0, 0, 0};
-		nanosleep(&ts, NULL);
-	}
+	hp->pixels[index].color = BLACK;
+	//nanosleep(&ts, NULL);
 }
 
 void* polling_buffers(void *arg){

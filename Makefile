@@ -6,5 +6,5 @@ BUILD=../build
 
 all: main
  
-main: main.c hexagon.c timer.c
+main: main.c hexagon.c data_transfer.c
 	$(CC) $(CFLAGS) -o $(BUILD)/$@ $^ $(LIBS) -lm
