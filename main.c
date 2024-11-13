@@ -16,10 +16,35 @@ Camera2D camera_setup(){
 	return camera;
 }
 
+typedef struct {
+	Vector2 dir;
+	int buffer_index;
+} Direction_hex_site_map;
+
+int is_within_circle(float centerX, float centerY, float mouseX, float mouseY, float radius){
+	int diffX = centerX - mouseX;
+	int diffY = centerY - mouseY;
+
+	return (diffX * diffX + diffY * diffY) <= radius * radius;
+}
+
 int main(int argc, char** argv) {
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Indexed Hexagon Pixels in Panel");
 	SetTargetFPS(60);
 	//startTimer(&timer, 999);
+
+	Vector2 htb_map_out[3] = {
+		dock_top_right,
+		dock_right,
+		dock_bottom_right
+
+	};
+
+	Vector2 htb_map_in[3] = {
+		dock_bottom_left,
+		dock_left,
+		dock_top_left
+	};
 
 	Camera2D camera = camera_setup();
     // Variable to store the total number of small hexagons
@@ -122,13 +147,30 @@ int main(int argc, char** argv) {
 		if(IsKeyDown(KEY_PERIOD)) camera.zoom += 0.01f;
 		if(IsKeyDown(KEY_COMMA)) camera.zoom -= 0.01f;
 
-
 		Vector2 mous_pos = GetScreenToWorld2D(GetMousePosition(), camera);
     	// Access and draw each hexagon from the array
 		for(int x = 0; x < 5; x++){
+			for(int i = 0; i < 3; i++){
+				if(hp[x].peer_in[i] != NULL) continue;
+
+				if(!is_within_circle(hp[x].center.x + htb_map_in[i].x, hp[x].center.y + htb_map_in[i].y, mous_pos.x, mous_pos.y, largeHexRadius*1.7)) continue;
+				DrawCircleLines(hp[x].center.x + htb_map_in[i].x, hp[x].center.y + htb_map_in[i].y, largeHexRadius*1.7, WHITE);
+			}
+		}	
+		for(int x = 0; x < 5; x++){
+			for(int i = 0; i < 3; i++){
+				if(hp[x].peer_out[i] != NULL) continue;
+				
+				if(!is_within_circle(hp[x].center.x + htb_map_out[i].x, hp[x].center.y + htb_map_out[i].y, mous_pos.x, mous_pos.y, largeHexRadius*1.7)) continue;
+				DrawCircleLines(hp[x].center.x + htb_map_out[i].x, hp[x].center.y + htb_map_out[i].y, largeHexRadius*1.7, WHITE);
+			}
+		}
+		for(int x = 0; x < 5; x++){
+			
+			//if(is_within_circle(hp[x].center.x, hp[x].center.y, mous_pos.x, mous_pos.y, largeHexRadius*1.7))
+			//	DrawCircleLines(hp[x].center.x, hp[x].center.y, largeHexRadius*1.7, WHITE);
 	    	for (int i = 0; i < 127; ++i) {
 				drawHexagon(&(hp[x].pixels[i]), i);
-				DrawCircle(mous_pos.x, mous_pos.y, 20.0, RED);
 			}
 		}
 		EndMode2D();
