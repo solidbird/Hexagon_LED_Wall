@@ -33,7 +33,9 @@ void* send_master(void *arg){
 
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 100;//time_per_cycle;	
+	ts.tv_nsec = 0;//5000000;//time_per_cycle;	
+
+	TraceLog(LOG_INFO, "MASTER %d", args->hexagon_panel->index);
 
 	int data = 0;
 	while(1){
@@ -42,38 +44,40 @@ void* send_master(void *arg){
 		Buffer* send_buffer = &(args->hexagon_panel->peer_out[index]->buffer_in[index]);
 	
 		pthread_mutex_lock(&(send_buffer->buffer_mutex));
-		if(is_full(send_buffer)){
-			TraceLog(LOG_INFO, "BBBB");
-			//pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-			pthread_mutex_unlock(&(send_buffer->buffer_mutex));
-			continue;
+		while(is_full(send_buffer)){
+			//TraceLog(LOG_INFO, "BBBB");
+			pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
+			//pthread_mutex_unlock(&(send_buffer->buffer_mutex));
+			//continue;
 		}
 		push(send_buffer, data);
 		data = (data + 1) % 127;
 
-		TraceLog(LOG_INFO, "MASTER SEND");
+		//TraceLog(LOG_INFO, "MASTER SEND");
 		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
-
+		pthread_cond_signal(&(send_buffer->bufferNotEmpty));
 		nanosleep(&ts, NULL);
 	}
 }
 
 void* sender(HexagonPanel* src_hp, HexagonPanel* dest_hp, int index, int data){
+	if(src_hp->index == 0 && index == 1)
+		TraceLog(LOG_INFO, "SEND %d: %d/%d --> %d/%d", data, src_hp->index, index, dest_hp->index, index);
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 70;//time_per_cycle;	
+	ts.tv_nsec = 0;//5000000;//time_per_cycle;	
 
 	Buffer* send_buffer = &(dest_hp->buffer_in[index]);
 	pthread_mutex_lock(&(send_buffer->buffer_mutex));
 
-	if(is_full(send_buffer)){
-		TraceLog(LOG_INFO, "BBBB");
-		//pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
-		return;
+	while(is_full(send_buffer)){
+		//TraceLog(LOG_INFO, "BBBB");
+		pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
+		//pthread_mutex_unlock(&(send_buffer->buffer_mutex));
+		//return;
 	}
 	if(src_hp->index == 2){
-		TraceLog(LOG_INFO, "PANEL 2 SENDS DATA %d", data);
+		//TraceLog(LOG_INFO, "PANEL 2 SENDS DATA %d", data);
 	}
 	push(send_buffer, data);
 
@@ -88,28 +92,34 @@ void* reciever(void *arg){
 	
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 50;//time_per_cycle;
+	ts.tv_nsec = 0;//500000;//time_per_cycle;
+	int last_data = -1;
 	
 	while(1){
 		pthread_mutex_lock(
 			&(reciever_buffer->buffer_mutex)
 		);
 		
-		if(is_empty(reciever_buffer)){
-		//	pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
-			pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
-			continue;
+		while(is_empty(reciever_buffer)){
+			pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
+			//pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
+			//continue;
 		}
 		int pop_data = pop(reciever_buffer);
-		TraceLog(LOG_INFO, "RECV BUFFER: %d FOR ID/Buffer: %d/%d", pop_data, args->hexagon_panel->index, index);
+		if(last_data >= pop_data)
+			TraceLog(LOG_INFO, "DOUBLE RECV %d: %d/%d <-- %d/%d", pop_data, args->hexagon_panel->index, index, args->hexagon_panel->peer_in[index]->index, index);
+		if(args->hexagon_panel->index == 3)
+			TraceLog(LOG_INFO, "RECV %d: %d/%d <-- %d/%d", pop_data, args->hexagon_panel->index, index, args->hexagon_panel->peer_in[index]->index, index);
 		process_stuff(args->hexagon_panel, pop_data);
 	
 		for(int i = 0; i < 3; i++){	
-			if(args->hexagon_panel->peer_out[i] == NULL){ continue; }
-			sender(args->hexagon_panel, args->hexagon_panel->peer_out[i], i, pop_data);
-		}		
-
-		pthread_cond_signal(&(reciever_buffer->bufferNotEmpty));
+			if(args->hexagon_panel->peer_out[i] != NULL){
+				sender(args->hexagon_panel, args->hexagon_panel->peer_out[i], i, pop_data);
+			}
+		}
+		
+		int last_data = pop_data;
+		pthread_cond_signal(&(reciever_buffer->bufferNotFull));
 		pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
 		nanosleep(&ts, NULL);
 	}

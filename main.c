@@ -81,16 +81,34 @@ int main(int argc, char** argv) {
 
 	hp[1].peer_out[0] = &hp[4];
 	hp[4].peer_in[0] = &hp[1];
-	hp[1].peer_out[1] = &hp[3];
-	hp[3].peer_in[1] = &hp[1];
-	hp[1].peer_out[2] = &hp[2];
-	hp[2].peer_in[2] = &hp[1];
+	hp[1].peer_out[2] = &hp[3];
+	hp[3].peer_in[2] = &hp[1];
+	hp[0].peer_out[2] = &hp[2];
+	hp[2].peer_in[2] = &hp[0];
 
 	hp[2].peer_out[0] = &hp[3];
 	hp[3].peer_in[0] = &hp[2];
 
 	hp[4].peer_out[2] = &hp[3];
 	hp[3].peer_in[2] = &hp[4];
+
+	hp[0].peer_out[1] = &hp[1];
+	hp[1].peer_in[1] = &hp[0];
+/*
+	hp[1].peer_out[1] = &hp[2];
+	hp[2].peer_in[1] = &hp[1];
+	hp[1].peer_out[0] = &hp[4];
+	hp[4].peer_in[0] = &hp[1];
+	hp[1].peer_out[2] = &hp[3];
+	hp[3].peer_in[2] = &hp[1];
+	
+	hp[2].peer_out[1] = &hp[3];
+	hp[3].peer_in[1] = &hp[2];
+	hp[2].peer_out[2] = &hp[4];
+	hp[4].peer_in[2] = &hp[2];
+	
+	hp[3].peer_out[1] = &hp[4];
+	hp[4].peer_in[1] = &hp[3];*/
 
 	Polling_args *hp_args[5];
 	for(int i = 0; i < 5; i++){
@@ -101,8 +119,10 @@ int main(int argc, char** argv) {
 
 			init_buffer(&(hp[i].buffer_out[x]));
 			init_buffer(&(hp[i].buffer_in[x]));
+			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
+			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
 			
-			if(hp[i].center.x == 250){
+			if(hp[i].index == 0){
 				pthread_create(&(hp[i].buffer_out[x].thread), NULL, send_master, hp_args[i]);
 			}else if(hp[i].peer_in[x] != NULL){
 				pthread_create(&(hp[i].buffer_in[x].thread), NULL, reciever, hp_args[i]);
