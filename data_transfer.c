@@ -43,15 +43,15 @@ void* send_master(void *arg){
 	
 		pthread_mutex_lock(&(send_buffer->buffer_mutex));
 		if(is_full(send_buffer)){
-			TraceLog(LOG_INFO, "BBBB");
+			//TraceLog(LOG_INFO, "BBBB");
 			//pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-			pthread_mutex_unlock(&(send_buffer->buffer_mutex));
+			//pthread_mutex_unlock(&(send_buffer->buffer_mutex));
 			continue;
 		}
-		push(send_buffer, data);
+		StsQueue.push(send_buffer->data, data);
 		data = (data + 1) % 127;
 
-		TraceLog(LOG_INFO, "MASTER SEND");
+		//TraceLog(LOG_INFO, "MASTER SEND");
 		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
 
 		nanosleep(&ts, NULL);
@@ -63,21 +63,21 @@ void* sender(HexagonPanel* src_hp, Buffer* dest_buffer, int index, int data){
 	ts.tv_sec = 0;
 	ts.tv_nsec = 70;//time_per_cycle;	
 
-	pthread_mutex_lock(&(dest_buffer->buffer_mutex));
+	//pthread_mutex_lock(&(dest_buffer->buffer_mutex));
 
 	if(is_full(dest_buffer)){
-		TraceLog(LOG_INFO, "BBBB");
+		//TraceLog(LOG_INFO, "BBBB");
 		//pthread_cond_wait(&(dest_buffer->bufferNotFull), &(dest_buffer->buffer_mutex));
 		pthread_mutex_unlock(&(dest_buffer->buffer_mutex));
 		return;
 	}
 	if(src_hp->index == 2){
-		TraceLog(LOG_INFO, "PANEL 2 SENDS DATA %d", data);
+		//TraceLog(LOG_INFO, "PANEL 2 SENDS DATA %d", data);
 	}
-	push(dest_buffer, data);
+	StsQueue.push(dest_buffer->data, data);
 
 	pthread_cond_signal(&(dest_buffer->bufferNotEmpty));
-	pthread_mutex_unlock(&(dest_buffer->buffer_mutex));
+	//pthread_mutex_unlock(&(dest_buffer->buffer_mutex));
 }
 
 void* reciever_in(void *arg){
@@ -94,12 +94,12 @@ void* reciever_in(void *arg){
 			&(reciever_buffer->buffer_mutex)
 		);
 		
-		if(is_empty(reciever_buffer)){
+		int pop_data = StsQueue.pop(reciever_buffer->data);
+		if(pop_data == NULL){
 		//	pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
-			pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
+			//pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
 			continue;
 		}
-		int pop_data = pop(reciever_buffer);
 		if(args->hexagon_panel->index = 2){
 			TraceLog(LOG_INFO, "RECV BUFFER: %d FOR ID/Buffer: %d/%d", pop_data, args->hexagon_panel->index, in_index);
 		}
@@ -117,7 +117,7 @@ void* reciever_in(void *arg){
 		}	
 
 		pthread_cond_signal(&(reciever_buffer->bufferNotEmpty));
-		pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
+		//pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
 		nanosleep(&ts, NULL);
 	}
 }
@@ -132,17 +132,17 @@ void* reciever_out(void *arg){
 	ts.tv_nsec = 50;//time_per_cycle;
 	
 	while(1){
-		pthread_mutex_lock(
+		/*pthread_mutex_lock(
 			&(respond_buffer->buffer_mutex)
-		);
+		);*/
 		
 		if(is_empty(respond_buffer)){
 		//	pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
-			pthread_mutex_unlock(&(respond_buffer->buffer_mutex));
+		//	pthread_mutex_unlock(&(respond_buffer->buffer_mutex));
 			continue;
 		}
-		int pop_data = pop(respond_buffer);
-		TraceLog(LOG_INFO, "RECV RESPOND BUFFER: %d FOR ID/Buffer: %d/%d", pop_data, args->hexagon_panel->index, out_index);
+		int pop_data = StsQueue.pop(respond_buffer->data);
+		//TraceLog(LOG_INFO, "RECV RESPOND BUFFER: %d FOR ID/Buffer: %d/%d", pop_data, args->hexagon_panel->index, out_index);
 		/*process_stuff(args->hexagon_panel, pop_data);
 	
 		for(int i = 0; i < 3; i++){	
@@ -151,7 +151,7 @@ void* reciever_out(void *arg){
 		}*/		
 
 		pthread_cond_signal(&(respond_buffer->bufferNotEmpty));
-		pthread_mutex_unlock(&(respond_buffer->buffer_mutex));
+		//pthread_mutex_unlock(&(respond_buffer->buffer_mutex));
 		nanosleep(&ts, NULL);
 	}
 }

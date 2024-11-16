@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <raylib.h>
+#include "sts_queue/sts_queue.h"
 
 #define largeHexRadius 120.0  // Radius of the large hexagon
 #define smallHexRadius 20.0   // Radius of the smaller hexagons
@@ -22,14 +23,10 @@ typedef struct {
 	Color color;
 } Hexagon;
 
-typedef struct {
+typedef struct Buffer {
 	//uint8_t data[1024];
-	pthread_mutex_t buffer_mutex;
-	pthread_cond_t bufferNotEmpty;
-	pthread_cond_t bufferNotFull;
 	pthread_t thread;
-	int data[1024];
-	int top;
+	StsQueue data;
 } Buffer;
 
 typedef struct HexagonPanel {
