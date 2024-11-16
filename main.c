@@ -97,15 +97,21 @@ int main(int argc, char** argv) {
 		for(int x = 0; x < 3; x++){
 			hp_args[i] = (Polling_args*) malloc(sizeof(Polling_args));
 			hp_args[i]->hexagon_panel = &hp[i];
-			hp_args[i]->buffer_index = x;
+			hp_args[i]->buffer_in_index = x;
 
 			init_buffer(&(hp[i].buffer_out[x]));
 			init_buffer(&(hp[i].buffer_in[x]));
-			
+
 			if(hp[i].center.x == 250){
 				pthread_create(&(hp[i].buffer_out[x].thread), NULL, send_master, hp_args[i]);
 			}else if(hp[i].peer_in[x] != NULL){
 				pthread_create(&(hp[i].buffer_in[x].thread), NULL, reciever, hp_args[i]);
+			}
+		}
+		for(int x = 0; x < 3; x++){
+			hp_args[i]->buffer_out_index = x;
+			if(hp[i].peer_out[x] != NULL){
+				pthread_create(&(hp[i].buffer_out[x].thread), NULL, reciever, hp_args[i]);
 			}
 		}
 	}
@@ -121,7 +127,6 @@ int main(int argc, char** argv) {
 		if(IsKeyDown(KEY_D)) camera.target.x += 5.0f;
 		if(IsKeyDown(KEY_PERIOD)) camera.zoom += 0.01f;
 		if(IsKeyDown(KEY_COMMA)) camera.zoom -= 0.01f;
-
 
 		Vector2 mous_pos = GetScreenToWorld2D(GetMousePosition(), camera);
     	// Access and draw each hexagon from the array
@@ -143,6 +148,6 @@ int main(int argc, char** argv) {
 			pthread_join(hp[i].buffer_in[x].thread, NULL);
 		}
 	}
-	
+
 	return 0;
 }

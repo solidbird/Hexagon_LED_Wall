@@ -58,34 +58,37 @@ void* send_master(void *arg){
 	}
 }
 
-void* sender(HexagonPanel* src_hp, HexagonPanel* dest_hp, int index, int data){
+void* sender(Buffer* dest_buffer, int data){
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 70;//time_per_cycle;	
 
-	Buffer* send_buffer = &(dest_hp->buffer_in[index]);
-	pthread_mutex_lock(&(send_buffer->buffer_mutex));
+	pthread_mutex_lock(&(dest_buffer->buffer_mutex));
 
-	if(is_full(send_buffer)){
+	if(is_full(dest_buffer)){
 		TraceLog(LOG_INFO, "BBBB");
-		//pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
+		//pthread_cond_wait(&(dest_buffer->bufferNotFull), &(dest_buffer->buffer_mutex));
+		pthread_mutex_unlock(&(dest_buffer->buffer_mutex));
 		return;
 	}
-	if(src_hp->index == 2){
-		TraceLog(LOG_INFO, "PANEL 2 SENDS DATA %d", data);
-	}
-	push(send_buffer, data);
+	push(dest_buffer, data);
 
-	pthread_cond_signal(&(send_buffer->bufferNotEmpty));
-	pthread_mutex_unlock(&(send_buffer->buffer_mutex));
+	pthread_cond_signal(&(dest_buffer->bufferNotEmpty));
+	pthread_mutex_unlock(&(dest_buffer->buffer_mutex));
 }
 
 void* reciever(void *arg){
 	Polling_args *args = (Polling_args *)arg;
 	int index = (int)args->buffer_index;
-	Buffer* reciever_buffer = &(args->hexagon_panel->buffer_in[index]);
-	
+	Buffer* reciever_buffer = NULL;
+	Buffer* respond_buffer = NULL;
+
+	if(args->hexagon_panel->peer_in[index] != NULL){
+		reciever_buffer = &(args->hexagon_panel->buffer_in[index]);
+	}else if(args->hexagon_panel->peer_out[index] != NULL){
+		respond_buffer = &(args->hexagon_panel->buffer_out[index]);
+	}
+
 	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 50;//time_per_cycle;
@@ -105,9 +108,13 @@ void* reciever(void *arg){
 		process_stuff(args->hexagon_panel, pop_data);
 	
 		for(int i = 0; i < 3; i++){	
-			if(args->hexagon_panel->peer_out[i] == NULL){ continue; }
-			sender(args->hexagon_panel, args->hexagon_panel->peer_out[i], i, pop_data);
-		}		
+			if(args->hexagon_panel->peer_out[i] != NULL){
+				sender(&(args->hexagon_panel->peer_out[i]->buffer_in[i]), pop_data);
+			}
+			if(args->hexagon_panel->peer_in[i] != NULL){
+				sender(&(args->hexagon_panel->peer_in[i]->buffer_out[i]), pop_data);
+			}
+		}	
 
 		pthread_cond_signal(&(reciever_buffer->bufferNotEmpty));
 		pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
