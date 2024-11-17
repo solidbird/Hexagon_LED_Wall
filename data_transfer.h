@@ -10,7 +10,8 @@ int is_empty(Buffer *buffer);
 int is_full(Buffer *buffer);
 
 void* send_master(void *arg);
-void* sender(HexagonPanel *src_hp, HexagonPanel *dest_hp, int index, int data);
-void* receiver(void *arg);
+void* sender(HexagonPanel *src_hp, Buffer *dest_buffer, int index, int data);
+void* receiver_out(void *arg);
+void* receiver_in(void *arg);
 
 #endif
