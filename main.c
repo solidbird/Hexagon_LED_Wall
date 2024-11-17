@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
 			if(hp[i].index == 0){
 				pthread_create(&(hp[i].buffer_out[x].thread), NULL, send_master, hp_args[i]);
 			}else if(hp[i].peer_in[x] != NULL){
-				pthread_create(&(hp[i].buffer_in[x].thread), NULL, reciever, hp_args[i]);
+				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver, hp_args[i]);
 			}
 		}
 	}

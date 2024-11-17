@@ -11,6 +11,6 @@ int is_full(Buffer *buffer);
 
 void* send_master(void *arg);
 void* sender(HexagonPanel *src_hp, HexagonPanel *dest_hp, int index, int data);
-void* reciever(void *arg);
+void* receiver(void *arg);
 
 #endif

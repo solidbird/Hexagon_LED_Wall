@@ -33,9 +33,7 @@ void* send_master(void *arg){
 
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 0;//5000000;//time_per_cycle;	
-
-	TraceLog(LOG_INFO, "MASTER %d", args->hexagon_panel->index);
+	ts.tv_nsec = 5000000;//time_per_cycle;	
 
 	int data = 0;
 	while(1){
@@ -45,15 +43,11 @@ void* send_master(void *arg){
 	
 		pthread_mutex_lock(&(send_buffer->buffer_mutex));
 		while(is_full(send_buffer)){
-			//TraceLog(LOG_INFO, "BBBB");
 			pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-			//pthread_mutex_unlock(&(send_buffer->buffer_mutex));
-			//continue;
 		}
 		push(send_buffer, data);
 		data = (data + 1) % 127;
 
-		//TraceLog(LOG_INFO, "MASTER SEND");
 		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
 		pthread_cond_signal(&(send_buffer->bufferNotEmpty));
 		nanosleep(&ts, NULL);
@@ -65,19 +59,13 @@ void* sender(HexagonPanel* src_hp, HexagonPanel* dest_hp, int index, int data){
 		TraceLog(LOG_INFO, "SEND %d: %d/%d --> %d/%d", data, src_hp->index, index, dest_hp->index, index);
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 0;//5000000;//time_per_cycle;	
+	ts.tv_nsec = 5000000;//time_per_cycle;	
 
 	Buffer* send_buffer = &(dest_hp->buffer_in[index]);
 	pthread_mutex_lock(&(send_buffer->buffer_mutex));
 
 	while(is_full(send_buffer)){
-		//TraceLog(LOG_INFO, "BBBB");
 		pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
-		//pthread_mutex_unlock(&(send_buffer->buffer_mutex));
-		//return;
-	}
-	if(src_hp->index == 2){
-		//TraceLog(LOG_INFO, "PANEL 2 SENDS DATA %d", data);
 	}
 	push(send_buffer, data);
 
@@ -85,14 +73,14 @@ void* sender(HexagonPanel* src_hp, HexagonPanel* dest_hp, int index, int data){
 	pthread_mutex_unlock(&(send_buffer->buffer_mutex));
 }
 
-void* reciever(void *arg){
+void* receiver(void *arg){
 	Polling_args *args = (Polling_args *)arg;
 	int index = (int)args->buffer_index;
 	Buffer* reciever_buffer = &(args->hexagon_panel->buffer_in[index]);
 	
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 0;//500000;//time_per_cycle;
+	ts.tv_nsec = 500000;//time_per_cycle;
 	int last_data = -1;
 	
 	while(1){
@@ -102,8 +90,6 @@ void* reciever(void *arg){
 		
 		while(is_empty(reciever_buffer)){
 			pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
-			//pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
-			//continue;
 		}
 		int pop_data = pop(reciever_buffer);
 		if(last_data >= pop_data)
