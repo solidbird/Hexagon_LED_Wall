@@ -110,6 +110,15 @@ int main(int argc, char** argv) {
 	hp[3].peer_out[1] = &hp[4];
 	hp[4].peer_in[1] = &hp[3];*/
 
+	HexagonPanel* master_hp = (HexagonPanel*) malloc(sizeof(HexagonPanel));
+	master_hp->index = -1;
+
+	master_hp->peer_out[1] = &hp[0];
+	hp[0].peer_in[1] = master_hp;
+
+	Polling_args *master_args = (Polling_args*) malloc(sizeof(Polling_args));
+	master_args->hexagon_panel = master_hp;
+
 	Polling_args *hp_args[5];
 	for(int i = 0; i < 5; i++){
 		for(int x = 0; x < 3; x++){
@@ -121,10 +130,8 @@ int main(int argc, char** argv) {
 			init_buffer(&(hp[i].buffer_in[x]));
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
-			
-			if(hp[i].index == 0){
-				pthread_create(&(hp[i].buffer_out[x].thread), NULL, send_master, hp_args[i]);
-			}else if(hp[i].peer_in[x] != NULL){
+	
+			if(i == 0 && x == 1 || hp[i].peer_in[x] != NULL){
 				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver_in, hp_args[i]);
 			}
 		}
@@ -134,6 +141,7 @@ int main(int argc, char** argv) {
 			pthread_create(&(hp[i].buffer_out[x].thread), NULL, receiver_out, hp_args[i]);
 		}
 	}
+	pthread_create(&(master_hp->buffer_out[1].thread), NULL, send_master, master_args);
 
 	while(!WindowShouldClose()){
 		ClearBackground(BLACK);
