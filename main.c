@@ -91,7 +91,6 @@ int main(int argc, char** argv) {
 
 	hp[4].peer_out[2] = &hp[3];
 	hp[3].peer_in[2] = &hp[4];
-	hp[1].peer_in[1] = &hp[0];
 
 	HexagonPanel* master_hp = (HexagonPanel*) malloc(sizeof(HexagonPanel));
 	master_hp->index = -1;
