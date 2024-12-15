@@ -1,6 +1,7 @@
 #include "data_transfer.h"
 #include "routing.h"
 #include "hexagon.h"
+#include <time.h>
 
 #define PAYLOAD_SIZE sizeof(Payload)
 
@@ -35,10 +36,9 @@ void* send_master(void *arg){
 	Polling_args *args = (Polling_args *)arg;
 	//int index = (int)args->buffer_in_index;
 
-	TraceLog(LOG_INFO, "SEND MASTER");
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 5000000;//time_per_cycle;	
+	ts.tv_nsec = 5000;//time_per_cycle;	
 
 	uint8_t payload[] = {3, 2, 0, 0, 0, 0, 20};
 
@@ -51,7 +51,6 @@ void* send_master(void *arg){
 			pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
 		}
 		push_back(send_buffer, payload[byte]);
-		TraceLog(LOG_INFO, "%d", payload[byte]);
 		byte = (byte + 1) % 7;
 
 		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
@@ -65,7 +64,7 @@ void* send_payload(HexagonPanel* src_hp, Buffer* dest_buffer, int index, void *p
 	//	TraceLog(LOG_INFO, "SEND %d: FROM %d TO INDEX %d", data, src_hp->index, index);
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 5000000;//time_per_cycle;	
+	ts.tv_nsec = 5000;//time_per_cycle;	
 
 	//TraceLog(LOG_INFO, "SENDER");
 	pthread_mutex_lock(&(dest_buffer->buffer_mutex));
@@ -82,14 +81,13 @@ void* send_payload(HexagonPanel* src_hp, Buffer* dest_buffer, int index, void *p
 }
 
 void* receiver_out(void *arg){
-	TraceLog(LOG_INFO, "RECEIVER_OUT");
 	Polling_args *args = (Polling_args *)arg;
 	int out_index = (int)args->buffer_out_index;
 	Buffer* respond_buffer = &(args->hexagon_panel->buffer_out[out_index]);
 	
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 500000;//time_per_cycle;
+	ts.tv_nsec = 500;//time_per_cycle;
 	
 	while(1){
 		//TraceLog(LOG_INFO, "LET'S GOOO");
@@ -104,19 +102,17 @@ void* receiver_out(void *arg){
 		//process_stuff(args->hexagon_panel, *pop_data);
 		for(int i = 0; i < 3; i++){	
 			if(args->hexagon_panel->peer_out[i] != NULL){
-				TraceLog(LOG_INFO, "RECV BACK %d/%d --> %d/%d = %d", args->hexagon_panel->index, i, args->hexagon_panel->peer_out[i]->index, i, *pop_data);
 				//sender(args->hexagon_panel, args->hexagon_panel->peer_out[i], i, *pop_data);
 			}
 		}
 		
 		pthread_cond_signal(&(respond_buffer->bufferNotFull));
 		pthread_mutex_unlock(&(respond_buffer->buffer_mutex));
-		nanosleep(&ts, NULL);
+		//nanosleep(&ts, NULL);
 	}
 }
 
 void* receiver_in(void *arg){
-	TraceLog(LOG_INFO, "RECEIVER_IN");
 	Polling_args *args = (Polling_args *)arg;
 	int in_index = (int)args->buffer_in_index;
 	Buffer* reciever_buffer = &(args->hexagon_panel->buffer_in[in_index]);
@@ -124,7 +120,7 @@ void* receiver_in(void *arg){
 	
 	struct timespec ts;
 	ts.tv_sec = 0;
-	ts.tv_nsec = 500000;//time_per_cycle;
+	ts.tv_nsec = 5000;//time_per_cycle;
 
 	uint8_t build_buffer[100];
 	int byte_size = 0;
@@ -164,8 +160,8 @@ void* receiver_in(void *arg){
 					send_payload(args->hexagon_panel, &(args->hexagon_panel->peer_out[i]->buffer_in[i]), i, payload);
 				}
 			}
-			if(args->hexagon_panel->index == 3)
-				TraceLog(LOG_INFO, "%d, PAYLOAD %d %d %d @ %d/%d", i++, payload->panel_id, payload->hops, payload->pos, args->hexagon_panel->index, in_index);
+			//if(args->hexagon_panel->index == 3)
+			TraceLog(LOG_INFO, "%d, PAYLOAD %d %d %d @ %d/%d", i++, payload->panel_id, payload->hops, payload->pos, args->hexagon_panel->index, in_index);
 			byte_size = 0;
 		}
 
@@ -189,6 +185,6 @@ void* receiver_in(void *arg){
 		
 		pthread_cond_signal(&(reciever_buffer->bufferNotFull));
 		pthread_mutex_unlock(&(reciever_buffer->buffer_mutex));
-		nanosleep(&ts, NULL);
+		//nanosleep(&ts, NULL);
 	}
 }
