@@ -6,6 +6,10 @@
 #define SCREEN_WIDTH 1600
 #define SCREEN_HEIGHT 900
 
+#define connect_panels(panel_parent, panel_child, edge_index) \
+	panel_parent.peer_out[edge_index] = &panel_child;\
+	panel_child.peer_in[edge_index] = &panel_parent;\
+
 Camera2D camera_setup(){
 	Camera2D camera = { 0 };
 	camera.target = (Vector2) {SCREEN_WIDTH, SCREEN_HEIGHT};
@@ -74,29 +78,21 @@ int main(int argc, char** argv) {
 	hp[4].pixels = generateHexagons((Vector2){hp[4].center.x, hp[4].center.y}, &(hp[4].hexagonCount)),
 
 	//Hook up the connections from each panel with eachother
-	hp[0].peer_out[1] = &hp[4];
-	hp[4].peer_in[1] = &hp[0];
-	hp[0].peer_out[2] = &hp[1];
-	hp[1].peer_in[2] = &hp[0];
+	connect_panels(hp[0], hp[4], 1);
+	connect_panels(hp[0], hp[1], 2);
+	
+	connect_panels(hp[1], hp[4], 0);
+	connect_panels(hp[1], hp[3], 1);
+	connect_panels(hp[1], hp[2], 2);
 
-	hp[1].peer_out[0] = &hp[4];
-	hp[4].peer_in[0] = &hp[1];
-	hp[1].peer_out[1] = &hp[3];
-	hp[3].peer_in[1] = &hp[1];
-	hp[1].peer_out[2] = &hp[2];
-	hp[2].peer_in[2] = &hp[1];
+	connect_panels(hp[2], hp[3], 0);
 
-	hp[2].peer_out[0] = &hp[3];
-	hp[3].peer_in[0] = &hp[2];
-
-	hp[4].peer_out[2] = &hp[3];
-	hp[3].peer_in[2] = &hp[4];
+	connect_panels(hp[4], hp[3], 2);
 
 	HexagonPanel* master_hp = (HexagonPanel*) malloc(sizeof(HexagonPanel));
 	master_hp->index = -1;
 
-	master_hp->peer_out[1] = &hp[0];
-	hp[0].peer_in[1] = master_hp;
+	connect_panels((*master_hp), hp[0], 1);
 
 	Polling_args *master_args = (Polling_args*) malloc(sizeof(Polling_args));
 	master_args->hexagon_panel = master_hp;
