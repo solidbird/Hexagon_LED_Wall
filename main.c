@@ -81,10 +81,10 @@ int main(int argc, char** argv) {
 
 	hp[1].peer_out[0] = &hp[4];
 	hp[4].peer_in[0] = &hp[1];
-	hp[1].peer_out[2] = &hp[3];
-	hp[3].peer_in[2] = &hp[1];
-	hp[0].peer_out[2] = &hp[2];
-	hp[2].peer_in[2] = &hp[0];
+	hp[1].peer_out[1] = &hp[3];
+	hp[3].peer_in[1] = &hp[1];
+	hp[1].peer_out[2] = &hp[2];
+	hp[2].peer_in[2] = &hp[1];
 
 	hp[2].peer_out[0] = &hp[3];
 	hp[3].peer_in[0] = &hp[2];
@@ -92,43 +92,38 @@ int main(int argc, char** argv) {
 	hp[4].peer_out[2] = &hp[3];
 	hp[3].peer_in[2] = &hp[4];
 
-	hp[0].peer_out[1] = &hp[1];
-	hp[1].peer_in[1] = &hp[0];
-/*
-	hp[1].peer_out[1] = &hp[2];
-	hp[2].peer_in[1] = &hp[1];
-	hp[1].peer_out[0] = &hp[4];
-	hp[4].peer_in[0] = &hp[1];
-	hp[1].peer_out[2] = &hp[3];
-	hp[3].peer_in[2] = &hp[1];
-	
-	hp[2].peer_out[1] = &hp[3];
-	hp[3].peer_in[1] = &hp[2];
-	hp[2].peer_out[2] = &hp[4];
-	hp[4].peer_in[2] = &hp[2];
-	
-	hp[3].peer_out[1] = &hp[4];
-	hp[4].peer_in[1] = &hp[3];*/
+	HexagonPanel* master_hp = (HexagonPanel*) malloc(sizeof(HexagonPanel));
+	master_hp->index = -1;
+
+	master_hp->peer_out[1] = &hp[0];
+	hp[0].peer_in[1] = master_hp;
+
+	Polling_args *master_args = (Polling_args*) malloc(sizeof(Polling_args));
+	master_args->hexagon_panel = master_hp;
 
 	Polling_args *hp_args[5];
 	for(int i = 0; i < 5; i++){
 		for(int x = 0; x < 3; x++){
 			hp_args[i] = (Polling_args*) malloc(sizeof(Polling_args));
 			hp_args[i]->hexagon_panel = &hp[i];
-			hp_args[i]->buffer_index = x;
+			hp_args[i]->buffer_in_index = x;
 
 			init_buffer(&(hp[i].buffer_out[x]));
 			init_buffer(&(hp[i].buffer_in[x]));
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
-			
-			if(hp[i].index == 0){
-				pthread_create(&(hp[i].buffer_out[x].thread), NULL, send_master, hp_args[i]);
-			}else if(hp[i].peer_in[x] != NULL){
-				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver, hp_args[i]);
+	
+			if(i == 0 && x == 1 || hp[i].peer_in[x] != NULL){
+				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver_in, hp_args[i]);
 			}
 		}
+
+		for(int x = 0; x < 3; x++){
+			hp_args[i]->buffer_out_index = x;
+			pthread_create(&(hp[i].buffer_out[x].thread), NULL, receiver_out, hp_args[i]);
+		}
 	}
+	pthread_create(&(master_hp->buffer_out[1].thread), NULL, send_master, master_args);
 
 	while(!WindowShouldClose()){
 		ClearBackground(BLACK);
@@ -141,7 +136,6 @@ int main(int argc, char** argv) {
 		if(IsKeyDown(KEY_D)) camera.target.x += 5.0f;
 		if(IsKeyDown(KEY_PERIOD)) camera.zoom += 0.01f;
 		if(IsKeyDown(KEY_COMMA)) camera.zoom -= 0.01f;
-
 
 		Vector2 mous_pos = GetScreenToWorld2D(GetMousePosition(), camera);
     	// Access and draw each hexagon from the array

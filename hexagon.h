@@ -29,7 +29,8 @@ typedef struct {
 	pthread_cond_t bufferNotFull;
 	pthread_t thread;
 	int data[1024];
-	int top;
+	int tail;
+	int head;
 } Buffer;
 
 typedef struct HexagonPanel {
@@ -46,7 +47,8 @@ typedef struct HexagonPanel {
 
 typedef struct {
 	HexagonPanel* hexagon_panel;
-	int buffer_index;
+	int buffer_out_index;
+	int buffer_in_index;
 } Polling_args;
 
 extern const Vector2 dock_top_right;
