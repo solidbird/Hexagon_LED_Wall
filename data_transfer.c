@@ -29,7 +29,7 @@ int is_empty(Buffer *buffer){
 }
 
 int is_full(Buffer *buffer){
-	return abs(buffer->head - buffer->tail) == 1;
+	return buffer->head - buffer->tail == -1;
 }
 void* send_master(void *arg){
 	Polling_args *args = (Polling_args *)arg;
@@ -130,6 +130,7 @@ void* receiver_in(void *arg){
 	int byte_size = 0;
 	uint8_t *pop_data;
 
+	int i = 0;
 	while(1){
 		pthread_mutex_lock(
 			&(reciever_buffer->buffer_mutex)
@@ -164,7 +165,7 @@ void* receiver_in(void *arg){
 				}
 			}
 			if(args->hexagon_panel->index == 3)
-				TraceLog(LOG_INFO, "PAYLOAD %d %d %d @ %d/%d", payload->panel_id, payload->hops, payload->pos, args->hexagon_panel->index, in_index);
+				TraceLog(LOG_INFO, "%d, PAYLOAD %d %d %d @ %d/%d", i++, payload->panel_id, payload->hops, payload->pos, args->hexagon_panel->index, in_index);
 			byte_size = 0;
 		}
 
