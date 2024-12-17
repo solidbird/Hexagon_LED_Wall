@@ -102,10 +102,10 @@ int main() {
 			hp_args[i]->hexagon_panel = &hp[i];
 			hp_args[i]->buffer_in_index = x;
 
-			init_buffer(&(hp[i].buffer_out[x]));
-			init_buffer(&(hp[i].buffer_in[x]));
+			hp[i].buffer_out[x].ring = ring_buffer_init(10000);
+			hp[i].buffer_in[x].ring = ring_buffer_init(10000);
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
-			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
+			if(pthread_mutex_init(&hp[i].buffer_in[x].buffer_mutex, NULL) != 0){ return -123; }
 	
 			if(hp[i].peer_in[x] != NULL){
 				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver_in, hp_args[i]);

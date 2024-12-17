@@ -3,36 +3,9 @@
 #include "data_transfer.h"
 #include "routing.h"
 #include "hexagon.h"
+#include "ring_buffer.h"
 
 #define PAYLOAD_SIZE sizeof(Frame)
-
-int push_back(Buffer *buffer, uint8_t value){
-	if(is_full(buffer)){ return 0; }
-	buffer->head = (buffer->head + 1) % 10000;
-	buffer->data[buffer->head] = value;
-	return 1;
-}
-
-void init_buffer(Buffer *buffer){
-	memset(buffer->data, 0, 10000 * sizeof(*(buffer->data)));
-	buffer->head = 0;
-	buffer->tail = 0;
-}
-
-uint8_t* pop_front(Buffer *buffer){
-	if(is_empty(buffer)) { return NULL; }
-	buffer->tail = (buffer->tail + 1) % 10000;
-	
-	return &buffer->data[buffer->tail];
-}
-
-int is_empty(Buffer *buffer){
-	return buffer->head == buffer->tail;
-}
-
-int is_full(Buffer *buffer){
-	return buffer->head - buffer->tail == -1;
-}
 
 void prep_package(Frame *frame, int* flip) {
 	for(size_t i = 0; i < 127; i++){
@@ -80,14 +53,14 @@ void* send_master(void *arg){
 		frame.route |= ((uint64_t)2) << 62;
 		uint8_t *bytes = (uint8_t *)&frame;
 		
-		while(is_full(send_buffer)){
+		while(ring_buffer_is_full(send_buffer->ring)){
 			TraceLog(LOG_INFO, "A");
 			pthread_cond_signal(&(send_buffer->bufferNotEmpty));
 			pthread_cond_wait(&(send_buffer->bufferNotFull), &(send_buffer->buffer_mutex));
 		}
 		
 		for(size_t i = 0; i < sizeof(Frame); i++){
-			push_back(send_buffer, bytes[i]);
+			ring_buffer_push(send_buffer->ring, bytes[i]);
 		}
 
 		pthread_mutex_unlock(&(send_buffer->buffer_mutex));
@@ -101,17 +74,17 @@ void send_payload(Buffer* dest_buffer, void *payload){
 
 	size_t size = PAYLOAD_SIZE;
 	for(uint8_t *byte = payload; size--; ++byte){
-		while(is_full(dest_buffer)){
+		while(ring_buffer_is_full(dest_buffer->ring)){
 			TraceLog(LOG_INFO, "b");
 			pthread_cond_wait(&(dest_buffer->bufferNotFull), &(dest_buffer->buffer_mutex));
 		}
-		push_back(dest_buffer, *byte);
+		ring_buffer_push(dest_buffer->ring, *byte);
 	}
 	pthread_cond_signal(&(dest_buffer->bufferNotEmpty));
 	pthread_mutex_unlock(&(dest_buffer->buffer_mutex));
 }
 
-void* receiver_out(void *arg){
+/*void* receiver_out(void *arg){
 	Polling_args *args = (Polling_args *)arg;
 	int out_index = (int)args->buffer_out_index;
 	Buffer* respond_buffer = &(args->hexagon_panel->buffer_out[out_index]);
@@ -136,7 +109,7 @@ void* receiver_out(void *arg){
 		pthread_cond_signal(&(respond_buffer->bufferNotFull));
 		pthread_mutex_unlock(&(respond_buffer->buffer_mutex));
 	}
-}
+}*/
 
 void* receiver_in(void *arg){
 	Polling_args *args = (Polling_args *)arg;
@@ -148,7 +121,7 @@ void* receiver_in(void *arg){
 	
 	uint8_t build_buffer[10000];
 	int byte_size = 0;
-	uint8_t *pop_data;
+	uint8_t *pop_data = (uint8_t*)malloc(sizeof(uint8_t));
 
 	int i = 0;
 	while(1){
@@ -156,13 +129,13 @@ void* receiver_in(void *arg){
 			&(reciever_buffer->buffer_mutex)
 		);
 		
-		while(is_empty(reciever_buffer)){
+		while(ring_buffer_is_empty(reciever_buffer->ring)){
 			TraceLog(LOG_INFO, "D");
 			pthread_cond_signal(&(reciever_buffer->bufferNotFull));
 			pthread_cond_wait(&(reciever_buffer->bufferNotEmpty), &(reciever_buffer->buffer_mutex));
 		}
 
-		pop_data = pop_front(reciever_buffer);
+		ring_buffer_pop(reciever_buffer->ring, pop_data);
 		byte_size++;
 		build_buffer[byte_size - 1] = *pop_data;
 		if( !(byte_size % sizeof(Frame)) ){

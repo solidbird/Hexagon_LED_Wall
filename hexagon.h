@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <raylib.h>
 #include "routing.h"
+#include "ring_buffer.h"
 
 #define largeHexRadius 120.0  // Radius of the large hexagon
 #define smallHexRadius 20.0   // Radius of the smaller hexagons
@@ -29,9 +30,7 @@ typedef struct {
 	pthread_cond_t bufferNotEmpty;
 	pthread_cond_t bufferNotFull;
 	pthread_t thread;
-	uint8_t data[10000];
-	int tail;
-	int head;
+	RingBuffer *ring;
 } Buffer;
 
 typedef struct HexagonPanel {
