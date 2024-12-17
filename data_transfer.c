@@ -195,7 +195,7 @@ void* receiver_in(void *arg){
 				case (((uint64_t)3) << 62):
 					//Process the package payload and display the content on the matrix
 					TraceLog(LOG_INFO, "%d, PAYLOAD %d %d %d @ %d", i++, frame->rgb_value[5].r, frame->rgb_value[5].g, frame->rgb_value[5].b, frame->route >> 62);
-					process_stuff(hp, frame);
+					process_rgb_values(hp, frame);
 				break;
 			}
 
