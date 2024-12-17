@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <raylib.h>
+#include "routing.h"
 
 #define largeHexRadius 120.0  // Radius of the large hexagon
 #define smallHexRadius 20.0   // Radius of the smaller hexagons
@@ -28,7 +29,7 @@ typedef struct {
 	pthread_cond_t bufferNotEmpty;
 	pthread_cond_t bufferNotFull;
 	pthread_t thread;
-	int data[1024];
+	uint8_t data[10000];
 	int tail;
 	int head;
 } Buffer;
@@ -60,7 +61,7 @@ extern const Vector2 dock_top_left;
 
 void drawHexagon(Hexagon* hex, int index);
 Hexagon* generateHexagons(Vector2 center, int* hexagonCount);
-void process_stuff(HexagonPanel* hp, int index);
+void process_rgb_values(HexagonPanel* hp, Frame* frame);
 void clear_screen(HexagonPanel* hp);
 void* polling_buffers(void *arg);
 

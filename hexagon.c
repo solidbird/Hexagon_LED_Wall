@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -33,8 +32,6 @@ const Vector2 dock_top_left = {
 	-(largeHexRadius * 3 - smallHexRadius)
 };
 
-
-
 void drawHexagon(Hexagon* hex, int index){
 	DrawPolyLines(
 		(Vector2){hex->center.x, hex->center.y},
@@ -52,7 +49,7 @@ void drawHexagon(Hexagon* hex, int index){
 
 	char index_as_str[5];
 	sprintf(index_as_str, "%d", index);	
-	
+
 	char coord_r[5];
 	char coord_q[5];
 	char dest[12];
@@ -62,9 +59,12 @@ void drawHexagon(Hexagon* hex, int index){
 	strcpy(dest, coord_r);
 	strcat(dest, ",");
 	strcat(dest, coord_q);
-	
-	DrawText(dest, hex->center.x - hex->radius/2, hex->center.y - hex->radius/2, 6, WHITE);
-	//DrawText(index_as_str, hex.center.x - hex.radius/2, hex.center.y - hex.radius/2, 6, WHITE);
+
+	//DrawText(dest, hex->center.x - hex->radius/2, hex->center.y - hex->radius/2, 6, WHITE);
+	//if(hex->color.r == 255){
+		//__asm__("int $3");
+	//}
+	DrawText(index_as_str, hex->center.x - hex->radius/2, hex->center.y - hex->radius/2, 6, WHITE);
 }
 
 // Function to generate hexagons and store them in an array
@@ -105,15 +105,12 @@ Hexagon* generateHexagons(Vector2 center, int* hexagonCount) {
 	return hexagons;
 }
 
-void process_stuff(HexagonPanel* hp, int index){
-	double time_per_cycle = 1.0 / CLOCK_SPEED_B;
-
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 999999999/60;//time_per_cycle;
-	//hp->pixels[index].pixel_color = (Color){0, 0, 0, 0};
-	hp->pixels[index].color = GREEN;
-	nanosleep(&ts, NULL);
-	hp->pixels[index].color = BLACK;
-	//nanosleep(&ts, NULL);
+void process_rgb_values(HexagonPanel* hp, Frame *frame){
+	for(int i = 0; i < 127; i++){
+		RGB_Value frame_color = frame->rgb_value[i];
+		hp->pixels[i].color = (Color){ frame_color.r, frame_color.g, frame_color.b, 255};
+		//if(i == 66 && (frame_color.r != 0 | frame_color.g != 0 | frame_color.b != 0)){
+		//	__asm__("int $3");
+		//}
+	}
 }
