@@ -20,14 +20,12 @@ Camera2D camera_setup(){
 	return camera;
 }
 
-int main(int argc, char** argv) {
+int main() {
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Indexed Hexagon Pixels in Panel");
 	SetTargetFPS(60);
 	//startTimer(&timer, 999);
 
 	Camera2D camera = camera_setup();
-    // Variable to store the total number of small hexagons
-    int hexagonCount = 0;
     
     // Prepare the Hexagon panels with their position relativ to other and generate "pixels" 
 	HexagonPanel hp[5];
@@ -109,15 +107,15 @@ int main(int argc, char** argv) {
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
 			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
 	
-			if(i == 0 && x == 1 || hp[i].peer_in[x] != NULL){
+			if(hp[i].peer_in[x] != NULL){
 				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver_in, hp_args[i]);
 			}
 		}
 
-		for(int x = 0; x < 3; x++){
+		/*for(int x = 0; x < 3; x++){
 			hp_args[i]->buffer_out_index = x;
 			pthread_create(&(hp[i].buffer_out[x].thread), NULL, receiver_out, hp_args[i]);
-		}
+		}*/
 	}
 	pthread_create(&(master_hp->buffer_out[1].thread), NULL, send_master, master_args);
 
