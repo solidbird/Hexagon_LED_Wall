@@ -10,6 +10,10 @@
 void prep_package(Frame *frame, int* flip) {
 	for(size_t i = 0; i < 127; i++){
 		if(*flip){
+			frame->route = ((uint64_t)3) << 62;
+			frame->route >>= 2;
+			frame->route |= ((uint64_t)2) << 62;
+
 			if(i % 2){
 				frame->rgb_value[i] = (RGB_Value){200, 50, 0};
 			}else{
@@ -17,16 +21,21 @@ void prep_package(Frame *frame, int* flip) {
 			}
 			*flip = 0;
 		}else{
+
+			frame->route = ((uint64_t)3) << 62;
+			frame->route >>= 2;
+			frame->route |= ((uint64_t)2) << 62;
+			frame->route >>= 2;
+			frame->route |= ((uint64_t)2) << 62;
+
 			if(i % 2){
 				frame->rgb_value[i] = (RGB_Value){0, 0, 0};
 			}else{
-				frame->rgb_value[i] = (RGB_Value){200, 50, 0};
+				frame->rgb_value[i] = (RGB_Value){0, 50, 200};
 			}
 			*flip = 1;
 		}
 	}
-
-	frame->route = ((uint64_t)3) << 62;
 }
 
 void* send_master(void *arg){
@@ -46,11 +55,7 @@ void* send_master(void *arg){
 		Frame frame;
 		prep_package(&frame, &flip);
 
-		frame.route = ((uint64_t)3) << 62;
-		frame.route >>= 2;
-		frame.route |= ((uint64_t)2) << 62;
-		frame.route >>= 2;
-		frame.route |= ((uint64_t)2) << 62;
+		
 		uint8_t *bytes = (uint8_t *)&frame;
 		
 		while(ring_buffer_is_full(send_buffer->ring)){
@@ -167,7 +172,15 @@ void* receiver_in(void *arg){
 				break;
 				case (((uint64_t)3) << 62):
 					//Process the package payload and display the content on the matrix
-					TraceLog(LOG_INFO, "%d, PAYLOAD %d %d %d @ %d", i++, frame->rgb_value[5].r, frame->rgb_value[5].g, frame->rgb_value[5].b, frame->route >> 62);
+					TraceLog(
+						LOG_INFO,
+						"%d, PAYLOAD %d %d %d @ %d",
+						i++,
+						frame->rgb_value[5].r,
+						frame->rgb_value[5].g,
+						frame->rgb_value[5].b,
+						frame->route >> 62
+					);
 					process_rgb_values(hp, frame);
 				break;
 			}
