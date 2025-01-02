@@ -1,7 +1,6 @@
-#include <pthread.h>
 #include "timer.h"
 #include "hexagon.h"
-#include "data_transfer.h"
+#include "controller.h"
 
 #define SCREEN_WIDTH 1600
 #define SCREEN_HEIGHT 900
@@ -19,6 +18,8 @@ Camera2D camera_setup(){
 
 	return camera;
 }
+
+pthread_t controller_thread;
 
 int main() {
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Indexed Hexagon Pixels in Panel");
@@ -102,22 +103,17 @@ int main() {
 			hp_args[i]->hexagon_panel = &hp[i];
 			hp_args[i]->buffer_in_index = x;
 
-			hp[i].buffer_out[x].ring = ring_buffer_init(10000);
-			hp[i].buffer_in[x].ring = ring_buffer_init(10000);
-			if(pthread_mutex_init(&hp[i].buffer_out[x].buffer_mutex, NULL) != 0){ return -123; }
-			if(pthread_mutex_init(&hp[i].buffer_in[x].buffer_mutex, NULL) != 0){ return -123; }
-	
-			if(hp[i].peer_in[x] != NULL){
-				pthread_create(&(hp[i].buffer_in[x].thread), NULL, receiver_in, hp_args[i]);
-			}
+			hp[i].buffer_out[x] = ring_buffer_init(10000);
+			hp[i].buffer_in[x] = ring_buffer_init(10000);
 		}
-
-		/*for(int x = 0; x < 3; x++){
-			hp_args[i]->buffer_out_index = x;
-			pthread_create(&(hp[i].buffer_out[x].thread), NULL, receiver_out, hp_args[i]);
-		}*/
+		//pthread_create(&(hp[i].thread), NULL, node_main, hp_args[i]);
 	}
-	pthread_create(&(master_hp->buffer_out[1].thread), NULL, send_master, master_args);
+	Controller_args controller_args = {
+		.nodes = hp,
+		.master = master_hp,
+		.nodes_amount = 5
+	};
+	pthread_create(&controller_thread, NULL, controller_main, &controller_args);
 
 	while(!WindowShouldClose()){
 		ClearBackground(BLACK);
@@ -146,10 +142,6 @@ int main() {
     // Free the dynamically allocated memory
 	for(int i = 0; i < 5; i++){
     	free(hp[i].pixels);
-		for(int x = 0; x < 3; x++){
-			pthread_join(hp[i].buffer_out[x].thread, NULL);
-			pthread_join(hp[i].buffer_in[x].thread, NULL);
-		}
 	}
 	
 	return 0;

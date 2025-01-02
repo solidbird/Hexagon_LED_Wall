@@ -2,6 +2,7 @@
 #define ROUTING_H
 
 #include <raylib.h>
+#include <stdint.h>
 
 typedef struct RGB_Value {
 	uint8_t r;

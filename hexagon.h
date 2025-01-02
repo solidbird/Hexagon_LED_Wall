@@ -3,7 +3,6 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <pthread.h>
 #include <raylib.h>
 #include "routing.h"
 #include "ring_buffer.h"
@@ -24,15 +23,6 @@ typedef struct {
 	Color color;
 } Hexagon;
 
-typedef struct {
-	//uint8_t data[1024];
-	pthread_mutex_t buffer_mutex;
-	pthread_cond_t bufferNotEmpty;
-	pthread_cond_t bufferNotFull;
-	pthread_t thread;
-	RingBuffer *ring;
-} Buffer;
-
 typedef struct HexagonPanel {
 	Vector2 center;
 	float radius;
@@ -40,8 +30,8 @@ typedef struct HexagonPanel {
 	int hexagonCount;
 	struct HexagonPanel *peer_out[3];
 	struct HexagonPanel *peer_in[3];
-	Buffer buffer_out[3];
-	Buffer buffer_in[3];
+	RingBuffer *buffer_out[3];
+	RingBuffer *buffer_in[3];
 	Hexagon *pixels;
 } HexagonPanel;
 
