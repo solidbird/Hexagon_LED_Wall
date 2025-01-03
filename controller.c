@@ -8,11 +8,6 @@ Frame* generate_frames(int frames_amount){
 	for(size_t x = 0; x < frames_amount; x++){
 		for(size_t i = 0; i < 127; i++){
 			frames[x].rgb_value[i] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
-			//if(i == x){
-			//	frames[x].rgb_value[i] = (RGB_Value){200, 50, 0};
-			//}else{
-			//	frames[x].rgb_value[i] = (RGB_Value){0, 0, 0};
-			//}
 		}
 
 		if(x < (int)(frames_amount/6)*1){
@@ -76,11 +71,100 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 		break;
 		case (((uint64_t)3) << 62):
 			//Process the package payload and display the content on the matrix
-			//TraceLog(LOG_INFO, "%d, PAYLOAD %d %d %d @ %d", i++, frame->rgb_value[5].r, frame->rgb_value[5].g, frame->rgb_value[5].b, frame->route >> 62);
 			process_rgb_values(hp, frame);
 			return 3;
 		break;
 	}
+}
+
+void master_build_topology(){
+	Discovery_package dp[8];
+	char **topology = NULL;
+	const int offset_index = 128; 
+
+	for(int i = 0; i < 8; i++){
+		dp[i].route_edges = 0;
+	}
+	topology = malloc(sizeof(char*) * (offset_index * 2));
+	for(size_t i = 0; i < offset_index * 2; i++){
+		topology[i] = malloc(sizeof(char) * (offset_index * 2));
+	}
+
+	for(int y = 0; y < offset_index * 2; y++){
+		for(int x = 0; x < offset_index * 2; x++){
+			topology[y][x] = '_';
+		}
+	}
+
+	dp[0].route_edges |= (((uint64_t)1) << 62);
+	dp[0].route_edges |= (((uint64_t)3) << 60);
+
+	dp[1].route_edges |= (((uint64_t)2) << 62);
+	dp[1].route_edges |= (((uint64_t)1) << 60);
+	dp[1].route_edges |= (((uint64_t)3) << 58);
+
+	dp[2].route_edges |= (((uint64_t)2) << 62);
+	dp[2].route_edges |= (((uint64_t)2) << 60);
+	dp[2].route_edges |= (((uint64_t)1) << 58);
+	dp[2].route_edges |= (((uint64_t)3) << 56);
+	
+	dp[3].route_edges |= (((uint64_t)1) << 62);
+	dp[3].route_edges |= (((uint64_t)2) << 60);
+	dp[3].route_edges |= (((uint64_t)1) << 58);
+	dp[3].route_edges |= (((uint64_t)3) << 56);
+	
+	dp[4].route_edges |= (((uint64_t)1) << 62);
+	dp[4].route_edges |= (((uint64_t)2) << 60);
+	dp[4].route_edges |= (((uint64_t)1) << 58);
+	dp[4].route_edges |= (((uint64_t)3) << 56);
+
+	dp[5].route_edges |= (((uint64_t)2) << 62);
+	dp[5].route_edges |= (((uint64_t)1) << 60);
+	dp[5].route_edges |= (((uint64_t)1) << 58);
+	dp[5].route_edges |= (((uint64_t)3) << 56);
+
+	dp[6].route_edges |= (((uint64_t)0) << 62);
+	dp[6].route_edges |= (((uint64_t)2) << 60);
+	dp[6].route_edges |= (((uint64_t)1) << 58);
+	dp[6].route_edges |= (((uint64_t)3) << 56);
+	
+	dp[7].route_edges |= (((uint64_t)1) << 62);
+	dp[7].route_edges |= (((uint64_t)1) << 60);
+	dp[7].route_edges |= (((uint64_t)3) << 58);
+
+	//__asm__("int $3");
+
+	for(size_t i = 0; i < 8; i++){
+		int x = 0;
+		int y = 0;
+
+		while(dp[i].route_edges != (((uint64_t)3) << 62)){
+
+			topology[y + offset_index][x + offset_index] = 'x';
+
+			switch(dp[i].route_edges & (((uint64_t)3) << 62)){
+				// look if topology is already set at case if not then set
+				case 0:
+					y++; x--;
+				break;
+				case (((uint64_t)1) << 62):
+					x++;
+				break;
+				case (((uint64_t)2) << 62):
+					y++;
+				break;
+			}
+			dp[i].route_edges <<= 2;
+		}
+	}
+	// timeout after X sec. if no packages arrived to switch to next state
+	for(int y = 0; y < 4; y++){
+		for(int x = 0; x < 4; x++){
+			printf("%c", topology[y + offset_index][x + offset_index]);
+		}
+		printf("\n");
+	}
+	//__asm__("int $3");
 }
 
 void* controller_main(void* controller_args){
@@ -93,11 +177,14 @@ void* controller_main(void* controller_args){
 	Frame *frame = (Frame*) malloc(sizeof(Frame));
 
 	int frame_index = 0;
+	Discovery_package *dp;
+
+	master_build_topology();
 
 	while(1){
 		//Send frame from Master to all nodes which are connected to
 		master_propegate_frame(args->master, master_frames, frame_size, &frame_index);
-		//__asm__("int $3");
+		
 		//Iterate through all the nodes
 		for(int i = 0; i < args->nodes_amount; i++){
 			for(int x = 0; x < 3; x++){
@@ -117,16 +204,21 @@ void* controller_main(void* controller_args){
 }
 
 void master_propegate_frame(HexagonPanel *master, Frame *master_frames, int frame_size, int *frame_index){
-	//for(int i = 0; i < 3; i++){
-		//if(master->peer_out[1] == NULL) continue;
-
-		RingBuffer *send_buffer = master->peer_out[1]->buffer_in[1];
-
-		//if(ring_buffer_is_full(send_buffer)) continue;
-		
-		ring_buffer_push(send_buffer, master_frames[*frame_index]);
-	//}
+	RingBuffer *send_buffer = master->peer_out[1]->buffer_in[1];
+	ring_buffer_push(send_buffer, master_frames[*frame_index]);
 	*frame_index = (*frame_index + 1) % frame_size;
+}
+
+void master_controller(HexagonPanel *master, Master_state *state){
+	switch(*state){
+		case discovery_phase:
+			// Here we build the topology by going through the packages received by the discovery_phase
+		break;
+		case run_phase:
+			// This is the actual process of propegating the packages laster according to the topology map
+			// and dijkstra 
+		break;
+	}
 }
 
 void node_controller(HexagonPanel *node){}

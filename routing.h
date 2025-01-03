@@ -15,4 +15,8 @@ typedef struct Frame {
 	RGB_Value rgb_value [127];
 } Frame;
 
+typedef struct Discovery_package{
+	uint64_t route_edges;
+} Discovery_package;
+
 #endif
