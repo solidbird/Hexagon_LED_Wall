@@ -109,6 +109,7 @@ int main() {
 
 			hp[i].buffer_out[x] = ring_buffer_init(10000);
 			hp[i].buffer_in[x] = ring_buffer_init(10000);
+			hp[i].neighbor_parent_available[x] = 0;
 		}
 		//pthread_create(&(hp[i].thread), NULL, node_main, hp_args[i]);
 	}
