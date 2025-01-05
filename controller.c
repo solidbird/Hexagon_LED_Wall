@@ -185,9 +185,9 @@ void* controller_main(void* controller_args){
 }
 
 void master_update_topology(HexagonPanel *master, Discovery_package *dp, int middle_offset_index, char *topology){
-	__asm__("int $3");
 	int x = 0;
 	int y = 0;
+	int skip_package = 0;
 	// 10 01 00 01 11 11 11 (11)
 	// dp->route_edges <<= (64-i)
 
@@ -198,25 +198,35 @@ void master_update_topology(HexagonPanel *master, Discovery_package *dp, int mid
 	//		case 0:
 	//		case 1:
 	//		case 2:
-	uint64_t mask = ((uint64_t)1 << 63) | ((uint64_t)1 << 62);
-	while((dp->route_edges & mask) != mask){
-		//Translate X,Y coordinates in a linear memory [Y * TOPOLOGY_WIDTH + X]
-		int topology_index = (y + middle_offset_index) * middle_offset_index * 2 + (x + middle_offset_index);
-		topology[topology_index] = 'x';
+	//uint64_t mask = ((uint64_t)1 << 63) | ((uint64_t)1 << 62);
+	for(int i = 0; i < 32; i++){
+		uint64_t mask = ((uint64_t)1 << (i*2+1) | ((uint64_t)1 << (i*2)));
+		if((dp->route_edges & mask) == mask){
+			skip_package = 1;
+			continue;
+		}
 
-		switch(dp->route_edges & (((uint64_t)3) << 62)){
+
+		switch((dp->route_edges & mask) >> (i*2)) {
 			// look if topology is already set at case if not then set
 			case 0:
 				y++; x--;
 			break;
-			case (((uint64_t)1) << 62):
+			case 1:
 				x++;
 			break;
-			case (((uint64_t)2) << 62):
+			case 2:
 				y++;
 			break;
 		}
-		dp->route_edges <<= 2;
+
+		if(skip_package){
+			skip_package = 0;
+			x = 0;
+			y = 0;
+		}
+		int topology_index = (y + middle_offset_index) * middle_offset_index * 2 + (x + middle_offset_index);
+		topology[topology_index] = 'x';
 	}
 }
 
@@ -309,6 +319,7 @@ int master_discovery(HexagonPanel *master, HexagonPanel *nodes, int nodes_amount
 			timeout--;
 		}
 	}
+	__asm__("int $3");
 }
 
 void master_propegate_frame(HexagonPanel *master, Frame *master_frames, int frame_size, int *frame_index){
