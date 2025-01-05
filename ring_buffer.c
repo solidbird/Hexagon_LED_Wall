@@ -29,12 +29,12 @@ void ring_buffer_free(RingBuffer *rb) {
 }
 
 // Add an element to the ring buffer
-bool ring_buffer_push(RingBuffer *rb, BufferData value, DataType type) {
+bool ring_buffer_push(RingBuffer *rb, BufferData *value, DataType type) {
     if (!rb){ 
 		return false;
 	}
 
-    rb->buffer[rb->head].data = value;
+    rb->buffer[rb->head].data = *value;
     rb->buffer[rb->head].type = type;
     rb->head = (rb->head + 1) % rb->size;
 

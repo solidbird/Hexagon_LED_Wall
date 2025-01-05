@@ -31,7 +31,7 @@ typedef struct {
 
 RingBuffer* ring_buffer_init(size_t size); 
 void ring_buffer_free(RingBuffer *rb);
-bool ring_buffer_push(RingBuffer *rb, BufferData value, DataType type);
+bool ring_buffer_push(RingBuffer *rb, BufferData *value, DataType type);
 bool ring_buffer_pop(RingBuffer *rb, BufferData *value, DataType *type);
 bool ring_buffer_is_empty(RingBuffer *rb);
 bool ring_buffer_is_full(RingBuffer *rb);
