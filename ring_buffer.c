@@ -8,7 +8,7 @@ RingBuffer* ring_buffer_init(size_t size) {
     if (!rb) {
         return NULL;
     }
-    rb->buffer = (payload_t*)malloc(size * sizeof(payload_t));
+    rb->buffer = (RingBufferEntry*)malloc(size * sizeof(RingBufferEntry));
     if (!rb->buffer) {
         free(rb);
         return NULL;
@@ -29,12 +29,13 @@ void ring_buffer_free(RingBuffer *rb) {
 }
 
 // Add an element to the ring buffer
-bool ring_buffer_push(RingBuffer *rb, payload_t value) {
+bool ring_buffer_push(RingBuffer *rb, BufferData value, DataType type) {
     if (!rb){ 
 		return false;
 	}
 
-    rb->buffer[rb->head] = value;
+    rb->buffer[rb->head].data = value;
+    rb->buffer[rb->head].type = type;
     rb->head = (rb->head + 1) % rb->size;
 
     if (rb->is_full) {
@@ -47,12 +48,13 @@ bool ring_buffer_push(RingBuffer *rb, payload_t value) {
 }
 
 // Remove an element from the ring buffer
-bool ring_buffer_pop(RingBuffer *rb, payload_t *value) {
+bool ring_buffer_pop(RingBuffer *rb, BufferData *value, DataType *type) {
 	if (!rb || (rb->head == rb->tail && !rb->is_full)) {
         return false; // Buffer is empty
     }
 
-    *value = rb->buffer[rb->tail];
+    *value = rb->buffer[rb->tail].data;
+    *type = rb->buffer[rb->tail].type;
     rb->tail = (rb->tail + 1) % rb->size;
     rb->is_full = false;
 	
