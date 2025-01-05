@@ -185,8 +185,19 @@ void* controller_main(void* controller_args){
 }
 
 void master_update_topology(HexagonPanel *master, Discovery_package *dp, int middle_offset_index, char *topology){
+	__asm__("int $3");
 	int x = 0;
 	int y = 0;
+	// 10 01 00 01 11 11 11 (11)
+	// dp->route_edges <<= (64-i)
+
+	// i = 0..31: 
+	// 		mask = (uint64_t)1 << 2*(i*2+1) | (uint64_t)1 << (i*2)
+	//		if (dp->route_edges & mask) == mask: continue;
+	//		dp->route_edges >> ((i*2))
+	//		case 0:
+	//		case 1:
+	//		case 2:
 	uint64_t mask = ((uint64_t)1 << 63) | ((uint64_t)1 << 62);
 	while((dp->route_edges & mask) != mask){
 		//Translate X,Y coordinates in a linear memory [Y * TOPOLOGY_WIDTH + X]
@@ -210,31 +221,61 @@ void master_update_topology(HexagonPanel *master, Discovery_package *dp, int mid
 }
 
 void nodes_discovery(HexagonPanel *nodes, int nodes_amount, Discovery_package *dp){
+	/*
+		- init array of 3 values [0], [1], [2] representing the edges and set the values initially boolean (0)
+		- if !checked[0] || !checked[1] || !checked[2]
+			- tag your edge and checked[edge] = 1 and send package backwards to that input edge (or prefered input edge 1) and propegate to all edges to output
+		- else
+			- just forward the package accros one of the checked edges in the priority of taking edge 1 always
+
+		TODO: How can we eventually switch from this mode to actual run mode?
+				(suggestion just also small timeout for each node since the initial packages are very close)
+				or (Differentiate packages "Frame", "Discovery_package")
+		
+		TODO: Grab the thing and tag own edge to it	
+	*/
 	DataType type = TYPE_DISCOVERY_PACKAGE;
 	for(int i = 0; i < nodes_amount; i++){
 		for(int edge = 0; edge < 3; edge++){
-			if(ring_buffer_is_empty(nodes[i].buffer_in[edge])) continue;
-			ring_buffer_pop(nodes[i].buffer_in[edge], dp, &type);
+			if(!ring_buffer_is_empty(nodes[i].buffer_in[edge])){
+				ring_buffer_pop(nodes[i].buffer_in[edge], dp, &type);
 
-			dp->route_edges >>= 2;
-			dp->route_edges |= ((uint64_t)edge) << 62;
+				if(!nodes[i].neighbor_parent_available[0] || !nodes[i].neighbor_parent_available[1] || !nodes[i].neighbor_parent_available[2]){
+					nodes[i].neighbor_parent_available[edge] = 1;
 
-			ring_buffer_push(nodes[i].peer_in[edge]->buffer_out[edge], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);
-			
-			/*
-				- init array of 3 values [0], [1], [2] representing the edges and set the values initially boolean (0)
-				- if !checked[0] || !checked[1] || !checked[2]
-					- tag your edge and checked[edge] = 1 and send package backwards to that input edge (or prefered input edge 1) and propegate to all edges to output
-				- else
-					- just forward the package accros one of the checked edges in the priority of taking edge 1 always
+					dp->route_edges >>= 2;
+					dp->route_edges |= ((uint64_t)edge) << 62;
 
-				TODO: How can we eventually switch from this mode to actual run mode?
-						(suggestion just also small timeout for each node since the initial packages are very close)
-						or (Differentiate packages "Frame", "Discovery_package")
-				
-			*/
+					if(nodes[i].neighbor_parent_available[1]){
+						ring_buffer_push(nodes[i].peer_in[1]->buffer_out[1], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);		
+					}else if(nodes[i].neighbor_parent_available[0]){
+						ring_buffer_push(nodes[i].peer_in[0]->buffer_out[0], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);		
+					}else if(nodes[i].neighbor_parent_available[2]){
+						ring_buffer_push(nodes[i].peer_in[2]->buffer_out[2], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);		
+					}				
+	
 
-			//TODO: Grab the thing and tag own edge to it 
+					if(nodes[i].peer_out[0] != NULL){
+						ring_buffer_push(nodes[i].peer_out[0]->buffer_in[0], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);		
+					}
+					if(nodes[i].peer_out[1] != NULL){
+						ring_buffer_push(nodes[i].peer_out[1]->buffer_in[1], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);		
+					}
+					if(nodes[i].peer_out[2] != NULL){
+						ring_buffer_push(nodes[i].peer_out[2]->buffer_in[2], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);		
+					}
+				}
+			}
+			if(!ring_buffer_is_empty(nodes[i].buffer_out[edge])){
+				ring_buffer_pop(nodes[i].buffer_out[edge], dp, &type);
+				if(nodes[i].neighbor_parent_available[1]){
+					ring_buffer_push(nodes[i].peer_in[1]->buffer_out[1], dp, TYPE_DISCOVERY_PACKAGE);
+				}else if(nodes[i].neighbor_parent_available[0]){
+					ring_buffer_push(nodes[i].peer_in[0]->buffer_out[0], dp, TYPE_DISCOVERY_PACKAGE);
+				}else if(nodes[i].neighbor_parent_available[2]){
+					ring_buffer_push(nodes[i].peer_in[2]->buffer_out[2], dp, TYPE_DISCOVERY_PACKAGE);
+				}
+			}
 		}
 	}
 }
