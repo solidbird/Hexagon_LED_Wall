@@ -38,7 +38,6 @@ Frame* generate_frames(int frames_amount){
 			frames[x].route = ((uint64_t)3) << 62;
 		}
 	}
-	__asm__("int $3");
 	return frames;
 }
 
@@ -133,8 +132,6 @@ void master_build_topology(){
 	dp[7].route_edges |= (((uint64_t)1) << 60);
 	dp[7].route_edges |= (((uint64_t)3) << 58);
 
-	//__asm__("int $3");
-
 	for(size_t i = 0; i < 8; i++){
 		int x = 0;
 		int y = 0;
@@ -165,7 +162,6 @@ void master_build_topology(){
 		}
 		printf("\n");
 	}
-	//__asm__("int $3");
 }
 
 void* controller_main(void* controller_args){
@@ -174,8 +170,6 @@ void* controller_main(void* controller_args){
 	HexagonPanel *master = args->master;
 
 	Frame *frame = (Frame*) malloc(sizeof(Frame));
-
-	Discovery_package *dp;
 
 	//TODO: timeout while loop has to run together with all nodes discovery phase
 	master_discovery(master, hp, args->nodes_amount);
@@ -192,13 +186,14 @@ void* controller_main(void* controller_args){
 	}
 }
 
-void master_update_topology(HexagonPanel *master, Discovery_package *dp, char **topology, int middle_offset_index){
+void master_update_topology(HexagonPanel *master, Discovery_package *dp, int middle_offset_index, char *topology){
 	int x = 0;
 	int y = 0;
-
-	while(dp->route_edges != (((uint64_t)3) << 62)){
-
-		topology[y + middle_offset_index][x + middle_offset_index] = 'x';
+	uint64_t mask = ((uint64_t)1 << 63) | ((uint64_t)1 << 62);
+	while((dp->route_edges & mask) != mask){
+		//Translate X,Y coordinates in a linear memory [Y * TOPOLOGY_WIDTH + X]
+		int topology_index = (y + middle_offset_index) * middle_offset_index * 2 + (x + middle_offset_index);
+		topology[topology_index] = 'x';
 
 		switch(dp->route_edges & (((uint64_t)3) << 62)){
 			// look if topology is already set at case if not then set
@@ -216,17 +211,17 @@ void master_update_topology(HexagonPanel *master, Discovery_package *dp, char **
 	}
 }
 
-void nodes_discovery(HexagonPanel *nodes, int nodes_amount){
-	Discovery_package *dp = malloc(sizeof(Discovery_package));
+void nodes_discovery(HexagonPanel *nodes, int nodes_amount, Discovery_package *dp){
+	DataType type = TYPE_DISCOVERY_PACKAGE;
 	for(int i = 0; i < nodes_amount; i++){
 		for(int edge = 0; edge < 3; edge++){
 			if(ring_buffer_is_empty(nodes[i].buffer_in[edge])) continue;
-			ring_buffer_pop(nodes[i].buffer_in[edge],(Frame*)dp);
+			ring_buffer_pop(nodes[i].buffer_in[edge], dp, &type);
 
 			dp->route_edges >>= 2;
 			dp->route_edges |= ((uint64_t)edge) << 62;
 
-			//ring_buffer_push(nodes[i].peer_in[edge]->buffer_out[edge], *((Frame*) &dp));
+			ring_buffer_push(nodes[i].peer_in[edge]->buffer_out[edge], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);
 			//TODO: Grab the thing and tag own edge to it 
 		}
 	}
@@ -234,31 +229,28 @@ void nodes_discovery(HexagonPanel *nodes, int nodes_amount){
 
 int master_discovery(HexagonPanel *master, HexagonPanel *nodes, int nodes_amount){
 	Discovery_package dp = {.route_edges = 0};
+	Discovery_package *dp_nodes = (Discovery_package*) malloc(sizeof(Discovery_package));
 	dp.route_edges = ~dp.route_edges;
 	RingBuffer *send_buffer = master->peer_out[1]->buffer_in[1];
-	ring_buffer_push(send_buffer, *((Frame*) &dp));
+	ring_buffer_push(send_buffer, (BufferData*) &dp, TYPE_DISCOVERY_PACKAGE);
 	Discovery_package* topology_info = malloc(sizeof(Discovery_package));
+	DataType type = TYPE_DISCOVERY_PACKAGE;
 
-	char **topology = NULL;
 	int middle_offset_index = 128;
-	topology = malloc(sizeof(char*) * (middle_offset_index * 2));
-	for(size_t i = 0; i < middle_offset_index * 2; i++){
-		topology[i] = malloc(sizeof(char) * (middle_offset_index * 2));
-	}
+	char *topology = (char*)malloc(sizeof(char) * (middle_offset_index * 2 * middle_offset_index * 2));
 
 	for(int y = 0; y < middle_offset_index * 2; y++){
 		for(int x = 0; x < middle_offset_index * 2; x++){
-			topology[y][x] = '_';
+			topology[y * middle_offset_index * 2 + x] = '_';
 		}
 	}
 	int timeout = 300;
 
 	while(timeout){
-		__asm__("int $3");
-		//nodes_discovery(nodes, nodes_amount);
+		nodes_discovery(nodes, nodes_amount, dp_nodes);
 		if(!ring_buffer_is_empty(master->buffer_out[1])){
-			ring_buffer_pop(master->buffer_out[1], topology_info);
-			master_update_topology(master, topology_info, topology, middle_offset_index);
+			ring_buffer_pop(master->buffer_out[1], topology_info, &type);
+			master_update_topology(master, topology_info, middle_offset_index, topology);
 			timeout = 300;
 		}else{
 			timeout--;
@@ -268,7 +260,7 @@ int master_discovery(HexagonPanel *master, HexagonPanel *nodes, int nodes_amount
 
 void master_propegate_frame(HexagonPanel *master, Frame *master_frames, int frame_size, int *frame_index){
 	RingBuffer *send_buffer = master->peer_out[1]->buffer_in[1];
-	ring_buffer_push(send_buffer, master_frames[*frame_index]);
+	ring_buffer_push(send_buffer, (BufferData*) &master_frames[*frame_index], TYPE_FRAME);
 	*frame_index = (*frame_index + 1) % frame_size;
 }
 
@@ -285,15 +277,16 @@ void master_controller(HexagonPanel *master, Master_state *state){
 }
 
 void node_controller(HexagonPanel *nodes, int nodes_amount, Frame *frame){
+	DataType type = TYPE_FRAME;
 	//Iterate through all the nodes
 	for(int i = 0; i < nodes_amount; i++){
 		for(int x = 0; x < 3; x++){
 			if(ring_buffer_is_empty(nodes[i].buffer_in[x])) continue;
-			ring_buffer_pop(nodes[i].buffer_in[x], frame);
+			ring_buffer_pop(nodes[i].buffer_in[x], frame, &type);
 	
 			int edge = forward_process_frame(&nodes[i], frame);
 			if(edge != 3){
-				ring_buffer_push(nodes[i].peer_out[edge]->buffer_in[edge], *frame);
+				ring_buffer_push(nodes[i].peer_out[edge]->buffer_in[edge], (BufferData*) frame, TYPE_FRAME);
 			}
 			// Process or forward?
 			// Process -> break out of this maybe?
