@@ -55,7 +55,6 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 			if(hp->peer_out[1] != NULL){
 				frame->route <<= 2;
 				return 1;
-				//send_payload(&(args->hexagon_panel->peer_out[1]->buffer_in[1]), frame);
 			}else{
 				TraceLog(LOG_INFO, "Interface 1 not found");
 			}
@@ -64,7 +63,6 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 			if(hp->peer_out[2] != NULL){
 				frame->route <<= 2;
 				return 2;
-				//send_payload(&(args->hexagon_panel->peer_out[2]->buffer_in[2]), frame);
 			}else{
 				TraceLog(LOG_INFO, "Interface 2 not found");
 			}
@@ -222,6 +220,20 @@ void nodes_discovery(HexagonPanel *nodes, int nodes_amount, Discovery_package *d
 			dp->route_edges |= ((uint64_t)edge) << 62;
 
 			ring_buffer_push(nodes[i].peer_in[edge]->buffer_out[edge], (BufferData*) dp, TYPE_DISCOVERY_PACKAGE);
+			
+			/*
+				- init array of 3 values [0], [1], [2] representing the edges and set the values initially boolean (0)
+				- if !checked[0] || !checked[1] || !checked[2]
+					- tag your edge and checked[edge] = 1 and send package backwards to that input edge (or prefered input edge 1) and propegate to all edges to output
+				- else
+					- just forward the package accros one of the checked edges in the priority of taking edge 1 always
+
+				TODO: How can we eventually switch from this mode to actual run mode?
+						(suggestion just also small timeout for each node since the initial packages are very close)
+						or (Differentiate packages "Frame", "Discovery_package")
+				
+			*/
+
 			//TODO: Grab the thing and tag own edge to it 
 		}
 	}
