@@ -32,6 +32,7 @@ typedef struct HexagonPanel {
 	struct HexagonPanel *peer_in[3];
 	RingBuffer *buffer_out[3];
 	RingBuffer *buffer_in[3];
+	int neighbor_parent_available[3]; 
 	Hexagon *pixels;
 } HexagonPanel;
 
