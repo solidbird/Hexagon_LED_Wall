@@ -90,6 +90,10 @@ int main() {
 
 	HexagonPanel* master_hp = (HexagonPanel*) malloc(sizeof(HexagonPanel));
 	master_hp->index = -1;
+	for(int x = 0; x < 3; x++){
+		master_hp->buffer_in[x] = ring_buffer_init(1000);
+		master_hp->buffer_out[x] = ring_buffer_init(1000);
+	}
 
 	connect_panels((*master_hp), hp[0], 1);
 
@@ -108,6 +112,7 @@ int main() {
 		}
 		//pthread_create(&(hp[i].thread), NULL, node_main, hp_args[i]);
 	}
+
 	Controller_args controller_args = {
 		.nodes = hp,
 		.master = master_hp,
