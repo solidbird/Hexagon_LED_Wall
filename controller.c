@@ -38,6 +38,7 @@ Frame* generate_frames(int frames_amount){
 			frames[x].route = ((uint64_t)3) << 62;
 		}
 	}
+	__asm__("int $3");
 	return frames;
 }
 
@@ -172,33 +173,95 @@ void* controller_main(void* controller_args){
 	HexagonPanel *hp = args->nodes;
 	HexagonPanel *master = args->master;
 
-	int frame_size = 300;
-	Frame *master_frames = generate_frames(frame_size);
 	Frame *frame = (Frame*) malloc(sizeof(Frame));
 
-	int frame_index = 0;
 	Discovery_package *dp;
 
-	master_build_topology();
-
+	//TODO: timeout while loop has to run together with all nodes discovery phase
+	master_discovery(master, hp, args->nodes_amount);
+	//master_build_topology();
+	//TODO: Build actual Frames out of the topology instead of doing this stuff
+	int frame_size = 300;
+	int frame_index = 0;
+	Frame *master_frames = generate_frames(frame_size);
 	while(1){
 		//Send frame from Master to all nodes which are connected to
-		master_propegate_frame(args->master, master_frames, frame_size, &frame_index);
-		
-		//Iterate through all the nodes
-		for(int i = 0; i < args->nodes_amount; i++){
-			for(int x = 0; x < 3; x++){
-				if(ring_buffer_is_empty(hp[i].buffer_in[x])) continue;
-				ring_buffer_pop(hp[i].buffer_in[x], frame);
-		
-				int edge = forward_process_frame(&hp[i], frame);
-				if(edge != 3){
-					ring_buffer_push(hp[i].peer_out[edge]->buffer_in[edge], *frame);
-				}
-				// Process or forward?
-				// Process -> break out of this maybe?
-				// Forward -> send_to_node(peer_out[n]->buffer_in[n])
-			}
+		//master_discovery(master);
+		master_propegate_frame(master, master_frames, frame_size, &frame_index);
+		node_controller(hp, args->nodes_amount, frame);
+	}
+}
+
+void master_update_topology(HexagonPanel *master, Discovery_package *dp, char **topology, int middle_offset_index){
+	int x = 0;
+	int y = 0;
+
+	while(dp->route_edges != (((uint64_t)3) << 62)){
+
+		topology[y + middle_offset_index][x + middle_offset_index] = 'x';
+
+		switch(dp->route_edges & (((uint64_t)3) << 62)){
+			// look if topology is already set at case if not then set
+			case 0:
+				y++; x--;
+			break;
+			case (((uint64_t)1) << 62):
+				x++;
+			break;
+			case (((uint64_t)2) << 62):
+				y++;
+			break;
+		}
+		dp->route_edges <<= 2;
+	}
+}
+
+void nodes_discovery(HexagonPanel *nodes, int nodes_amount){
+	Discovery_package *dp = malloc(sizeof(Discovery_package));
+	for(int i = 0; i < nodes_amount; i++){
+		for(int edge = 0; edge < 3; edge++){
+			if(ring_buffer_is_empty(nodes[i].buffer_in[edge])) continue;
+			ring_buffer_pop(nodes[i].buffer_in[edge],(Frame*)dp);
+
+			dp->route_edges >>= 2;
+			dp->route_edges |= ((uint64_t)edge) << 62;
+
+			//ring_buffer_push(nodes[i].peer_in[edge]->buffer_out[edge], *((Frame*) &dp));
+			//TODO: Grab the thing and tag own edge to it 
+		}
+	}
+}
+
+int master_discovery(HexagonPanel *master, HexagonPanel *nodes, int nodes_amount){
+	Discovery_package dp = {.route_edges = 0};
+	dp.route_edges = ~dp.route_edges;
+	RingBuffer *send_buffer = master->peer_out[1]->buffer_in[1];
+	ring_buffer_push(send_buffer, *((Frame*) &dp));
+	Discovery_package* topology_info = malloc(sizeof(Discovery_package));
+
+	char **topology = NULL;
+	int middle_offset_index = 128;
+	topology = malloc(sizeof(char*) * (middle_offset_index * 2));
+	for(size_t i = 0; i < middle_offset_index * 2; i++){
+		topology[i] = malloc(sizeof(char) * (middle_offset_index * 2));
+	}
+
+	for(int y = 0; y < middle_offset_index * 2; y++){
+		for(int x = 0; x < middle_offset_index * 2; x++){
+			topology[y][x] = '_';
+		}
+	}
+	int timeout = 300;
+
+	while(timeout){
+		__asm__("int $3");
+		//nodes_discovery(nodes, nodes_amount);
+		if(!ring_buffer_is_empty(master->buffer_out[1])){
+			ring_buffer_pop(master->buffer_out[1], topology_info);
+			master_update_topology(master, topology_info, topology, middle_offset_index);
+			timeout = 300;
+		}else{
+			timeout--;
 		}
 	}
 }
@@ -221,4 +284,20 @@ void master_controller(HexagonPanel *master, Master_state *state){
 	}
 }
 
-void node_controller(HexagonPanel *node){}
+void node_controller(HexagonPanel *nodes, int nodes_amount, Frame *frame){
+	//Iterate through all the nodes
+	for(int i = 0; i < nodes_amount; i++){
+		for(int x = 0; x < 3; x++){
+			if(ring_buffer_is_empty(nodes[i].buffer_in[x])) continue;
+			ring_buffer_pop(nodes[i].buffer_in[x], frame);
+	
+			int edge = forward_process_frame(&nodes[i], frame);
+			if(edge != 3){
+				ring_buffer_push(nodes[i].peer_out[edge]->buffer_in[edge], *frame);
+			}
+			// Process or forward?
+			// Process -> break out of this maybe?
+			// Forward -> send_to_node(peer_out[n]->buffer_in[n])
+		}
+	}
+}
