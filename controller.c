@@ -41,6 +41,20 @@ Frame* generate_frames(int frames_amount){
 	return frames;
 }
 
+void package_frames(Frame *frames, char *topology, Sceen_frames *sceen_frames){
+	/*
+		- Take each sceen frame and calculate the poisition of each pixel with the color
+		to be on the hexagon panels (lay piuctute or videos on top of the hexagon panels)
+
+		- Have a bunch of Frame packages ready
+			- we can run the alogrithm without even sending packages out yet to prepare the routes for each
+			package. (Might take a lot of time otherwise just go and calculate the algorithm everyonce in a while)
+
+		- return frames
+	*/
+
+}
+
 int forward_process_frame(HexagonPanel* hp, Frame *frame){
 	switch(frame->route & (((uint64_t)3) << 62)){
 		case 0:
@@ -154,12 +168,6 @@ void master_build_topology(){
 		}
 	}
 	// timeout after X sec. if no packages arrived to switch to next state
-	for(int y = 0; y < 4; y++){
-		for(int x = 0; x < 4; x++){
-			printf("%c", topology[y + offset_index][x + offset_index]);
-		}
-		printf("\n");
-	}
 }
 
 void* controller_main(void* controller_args){
@@ -169,13 +177,13 @@ void* controller_main(void* controller_args){
 
 	Frame *frame = (Frame*) malloc(sizeof(Frame));
 
-	//TODO: timeout while loop has to run together with all nodes discovery phase
-	master_discovery(master, hp, args->nodes_amount);
+	//TOxDO: timeout while loop has to run together with all nodes discovery phase
+	char* topology = master_discovery(master, hp, args->nodes_amount);
 	//master_build_topology();
 	//TODO: Build actual Frames out of the topology instead of doing this stuff
 	int frame_size = 300;
 	int frame_index = 0;
-	Frame *master_frames = generate_frames(frame_size);
+	package_frames(master_frames, topology, sceen);
 	while(1){
 		//Send frame from Master to all nodes which are connected to
 		//master_discovery(master);
@@ -210,7 +218,7 @@ void master_update_topology(HexagonPanel *master, Discovery_package *dp, int mid
 		switch((dp->route_edges & mask) >> (i*2)) {
 			// look if topology is already set at case if not then set
 			case 0:
-				y++; x--;
+				y--; x++;
 			break;
 			case 1:
 				x++;
@@ -242,7 +250,7 @@ void nodes_discovery(HexagonPanel *nodes, int nodes_amount, Discovery_package *d
 				(suggestion just also small timeout for each node since the initial packages are very close)
 				or (Differentiate packages "Frame", "Discovery_package")
 		
-		TODO: Grab the thing and tag own edge to it	
+		TOxDO: Grab the thing and tag own edge to it	
 	*/
 	DataType type = TYPE_DISCOVERY_PACKAGE;
 	for(int i = 0; i < nodes_amount; i++){
@@ -319,7 +327,18 @@ int master_discovery(HexagonPanel *master, HexagonPanel *nodes, int nodes_amount
 			timeout--;
 		}
 	}
-	__asm__("int $3");
+	printf("\n\n---------------\n   TOPOLOGY:   \n---------------\n\n");	
+	for(int y = -5; y < 10; y++){
+		for(int x = -5; x < 10; x++){
+			if(topology[(y + middle_offset_index) * middle_offset_index*2 + (x + middle_offset_index)] == 'x'){
+				printf("(%d,%d)",x ,y);
+			}else{
+				printf("     ");
+			}
+		}
+		printf("\n");
+	}
+
 }
 
 void master_propegate_frame(HexagonPanel *master, Frame *master_frames, int frame_size, int *frame_index){
