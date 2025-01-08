@@ -5,11 +5,33 @@
 
 #define offset_topology(x, y) (MIDDLE_OFFSET_INDEX + y) * MIDDLE_OFFSET_INDEX * 2 + (MIDDLE_OFFSET_INDEX + x)
 
-void generate_frames(Scene *scene, int frames_amount){
+void generate_scene(Scene *scene, int frames_amount){
 
 	for(size_t x = 0; x < frames_amount; x++){
-		for(size_t i = 0; i < 127; i++){
-			scene[x].rgb_value[i] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+		if(x % 2){
+			scene[x].rgb_value[60] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[73] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[85] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[86] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[87] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[88] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[77] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[65] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[52] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[40] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[39] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[38] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[37] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[48] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+		}else{
+			scene[x].rgb_value[37] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[48] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[60] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[61] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[62] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[63] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[64] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
+			scene[x].rgb_value[65] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
 		}
 
 		if(x%5 == 0){
@@ -77,8 +99,6 @@ void package_frames(Frame *frames, int frames_amount, Topology_node *topology, S
 		- Have a bunch of Frame packages ready
 			- we can run the alogrithm without even sending packages out yet to prepare the routes for each
 			package. (Might take a lot of time otherwise just go and calculate the algorithm everyonce in a while)
-
-		- return frames
 	*/
 	
 	// 0. Take costs into account prefer always the node that is that has the lowest costs
@@ -158,7 +178,6 @@ void package_frames(Frame *frames, int frames_amount, Topology_node *topology, S
 			}else{
 				if(y > scene[i].destination.y){
 					if(possible_edges[sorted_edges[0].edge] != -1){
-						//TAKE THAT EDGE AND CONTINUE WITH MAIN WHILE LOOP
 						x++;
 						y--;
 						update_topology_node(topology, x, y);
@@ -171,7 +190,6 @@ void package_frames(Frame *frames, int frames_amount, Topology_node *topology, S
 					}
 				}else if(y < scene[i].destination.y){
 					if(possible_edges[sorted_edges[2].edge] != -1){
-						//TAKE THAT EDGE AND CONTINUE WITH MAIN WHILE LOOP
 						y++;
 						update_topology_node(topology, x, y);
 						frames[i].route >>= 2;
@@ -184,7 +202,6 @@ void package_frames(Frame *frames, int frames_amount, Topology_node *topology, S
 				}
 
 				if(possible_edges[sorted_edges[1].edge] != -1){
-					//TAKE THAT EDGE AND CONTINUE WITH MAIN WHILE LOOP
 					x++;
 					update_topology_node(topology, x, y);
 					frames[i].route >>= 2;
@@ -195,39 +212,6 @@ void package_frames(Frame *frames, int frames_amount, Topology_node *topology, S
 					continue;
 				}
 			}
-
-			//TODO: Check if even a node is at that peak location if not than just dont look at it
-/*			if(topology[peak_edge0_index].node_cost <= topology[peak_edge1_index].node_cost){
-				if(topology[peak_edge0_index].node_cost < topology[peak_edge2_index].node_cost){
-					//Go with edge 0
-				}else{
-					//Go with edge 2
-				}
-			}else{
-				if(topology[peak_edge1_index].node_cost < topology[peak_edge2_index].node_cost){
-					//Go with edge 1
-				}else{
-					//Go with edge 2
-				}
-			}
-			
-			//TODO: We want to only do this for one iteration and check the above rule as well before going on with the next iteration
-			while(y != sceen->destination.y){
-				if(!topology[peak_edge2_index].node_available){
-					while(x != sceen->destination){
-						if(!topology[peak_edge1_index].node_available){
-
-						}
-					}
-				}
-				if(y < sceen->destination.y){
-					y++;
-				}else if(y > sceen->destination.y){ //TODO: Check for node_available at edge 0;
-					x++;
-					y--;
-				}
-			}*/
-
 		}
 	}
 }
@@ -237,7 +221,6 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 		case 0:
 			if(hp->peer_out[0] != NULL){
 				frame->route <<= 2;
-				//TraceLog(LOG_INFO, "FORWARD 0");
 				return 0;
 			}else{
 				TraceLog(LOG_INFO, "Inferface 0 not found");
@@ -246,7 +229,6 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 		case (((uint64_t)1) << 62):
 			if(hp->peer_out[1] != NULL){
 				frame->route <<= 2;
-				//TraceLog(LOG_INFO, "FORWARD 1");
 				return 1;
 			}else{
 				TraceLog(LOG_INFO, "Interface 1 not found");
@@ -255,7 +237,6 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 		case (((uint64_t)2) << 62):
 			if(hp->peer_out[2] != NULL){
 				frame->route <<= 2;
-				//TraceLog(LOG_INFO, "FORWARD 2");
 				return 2;
 			}else{
 				TraceLog(LOG_INFO, "Interface 2 not found");
@@ -263,7 +244,6 @@ int forward_process_frame(HexagonPanel* hp, Frame *frame){
 		break;
 		case (((uint64_t)3) << 62):
 			//Process the package payload and display the content on the matrix
-			//TraceLog(LOG_INFO, "PROCESS");
 			process_rgb_values(hp, frame);
 			return 3;
 		break;
@@ -280,7 +260,8 @@ void* controller_main(void* controller_args){
 	Frame *frame = (Frame*) malloc(sizeof(Frame));
 	Frame *master_frames = (Frame*) malloc(sizeof(Frame) * frame_size);
 	Topology_node *topology = (Topology_node*)malloc(sizeof(Topology_node) * (MIDDLE_OFFSET_INDEX * 2 * MIDDLE_OFFSET_INDEX * 2));
-	
+
+	//Initialize topology internals	
 	for(int y = -MIDDLE_OFFSET_INDEX; y < MIDDLE_OFFSET_INDEX; y++){
 		for(int x = -MIDDLE_OFFSET_INDEX; x < MIDDLE_OFFSET_INDEX; x++){
 			int index = offset_topology(x, y);
@@ -296,22 +277,21 @@ void* controller_main(void* controller_args){
 			}
 		}
 	}
-	//TOxDO: timeout while loop has to run together with all nodes discovery phase
+    struct timespec tm;                                                   
+	//Time to sleep to simulate getting every 1/30 sec Pictures and processed by the packaging
+    tm.tv_sec = 0;                                                            
+    tm.tv_nsec = 999999999L/30;                                                                                                            
+
 	master_discovery(master, hp, args->nodes_amount, topology);
-	//TODO: Build actual Frames out of the topology instead of doing this stuff
+	
 	int frame_index = 0;
-	generate_frames(scene, frame_size);
+	generate_scene(scene, frame_size);
 	package_frames(master_frames, frame_size, topology, scene);
 	while(1){
 		//Send frame from Master to all nodes which are connected to
 		master_propegate_frame(master, master_frames, frame_size, &frame_index);
 		node_controller(hp, args->nodes_amount, frame);
-		
-		/*TraceLog(LOG_INFO, "(0,0): %f", topology[offset_topology(0,0)].node_cost);
-		TraceLog(LOG_INFO, "(0,1): %f", topology[offset_topology(0,1)].node_cost);
-		TraceLog(LOG_INFO, "(0,2): %f", topology[offset_topology(0,2)].node_cost);
-		TraceLog(LOG_INFO, "(1,1): %f", topology[offset_topology(1,1)].node_cost);
-		TraceLog(LOG_INFO, "(1,0): %f", topology[offset_topology(1,0)].node_cost);*/
+		nanosleep(&tm, NULL);
 	}
 }
 
@@ -319,17 +299,7 @@ void master_update_topology(HexagonPanel *master, Discovery_package *dp, Topolog
 	int x = 0;
 	int y = 0;
 	int skip_package = 0;
-	// 10 01 00 01 11 11 11 (11)
-	// dp->route_edges <<= (64-i)
 
-	// i = 0..31: 
-	// 		mask = (uint64_t)1 << 2*(i*2+1) | (uint64_t)1 << (i*2)
-	//		if (dp->route_edges & mask) == mask: continue;
-	//		dp->route_edges >> ((i*2))
-	//		case 0:
-	//		case 1:
-	//		case 2:
-	//uint64_t mask = ((uint64_t)1 << 63) | ((uint64_t)1 << 62);
 	for(int i = 0; i < 32; i++){
 		uint64_t mask = ((uint64_t)1 << (i*2+1) | ((uint64_t)1 << (i*2)));
 		if((dp->route_edges & mask) == mask){
@@ -368,12 +338,6 @@ void nodes_discovery(HexagonPanel *nodes, int nodes_amount, Discovery_package *d
 			- tag your edge and checked[edge] = 1 and send package backwards to that input edge (or prefered input edge 1) and propegate to all edges to output
 		- else
 			- just forward the package accros one of the checked edges in the priority of taking edge 1 always
-
-		TODO: How can we eventually switch from this mode to actual run mode?
-				(suggestion just also small timeout for each node since the initial packages are very close)
-				or (Differentiate packages "Frame", "Discovery_package")
-		
-		TOxDO: Grab the thing and tag own edge to it	
 	*/
 	DataType type = TYPE_DISCOVERY_PACKAGE;
 	for(int i = 0; i < nodes_amount; i++){
@@ -464,18 +428,6 @@ void master_propegate_frame(HexagonPanel *master, Frame *master_frames, int fram
 	
 }
 
-void master_controller(HexagonPanel *master, Master_state *state){
-	switch(*state){
-		case discovery_phase:
-			// Here we build the topology by going through the packages received by the discovery_phase
-		break;
-		case run_phase:
-			// This is the actual process of propegating the packages laster according to the topology map
-			// and dijkstra 
-		break;
-	}
-}
-
 void node_controller(HexagonPanel *nodes, int nodes_amount, Frame *frame){
 	DataType type = TYPE_FRAME;
 	//Iterate through all the nodes
@@ -488,7 +440,6 @@ void node_controller(HexagonPanel *nodes, int nodes_amount, Frame *frame){
 				ring_buffer_push(nodes[i].peer_out[edge]->buffer_in[edge], (BufferData*) frame, TYPE_FRAME);
 			}
 			// Process or forward?
-			// Process -> break out of this maybe?
 			// Forward -> send_to_node(peer_out[n]->buffer_in[n])
 		}
 	}

@@ -32,7 +32,7 @@ typedef struct Edge_to_node_cost{
 
 void* controller_main(void* controller_args);
 
-void generate_frames(Scene *scene, int frames_amount);
+void generate_scene(Scene *scene, int frames_amount);
 void master_propegate_frame(HexagonPanel *master, Frame *master_frames, int frame_size, int *frame_index);
 void node_controller(HexagonPanel *node, int nodes_amount, Frame *frame);
 void master_controller(HexagonPanel *master, Master_state *state);
