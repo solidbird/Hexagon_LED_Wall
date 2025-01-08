@@ -10,6 +10,11 @@ typedef struct RGB_Value {
 	uint8_t b;
 } RGB_Value;
 
+typedef struct Scene {
+	Vector2 destination;
+	RGB_Value rgb_value [127];
+} Scene;
+
 typedef struct Frame {
 	uint64_t route;
 	RGB_Value rgb_value [127];
