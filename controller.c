@@ -3,9 +3,7 @@
 #include <time.h>
 
 
-int offset_topology(int x, int y) {
-	return (MIDDLE_OFFSET_INDEX + y) * MIDDLE_OFFSET_INDEX * 2 + (MIDDLE_OFFSET_INDEX + x);
-}
+#define offset_topology(x, y) (MIDDLE_OFFSET_INDEX + y) * MIDDLE_OFFSET_INDEX * 2 + (MIDDLE_OFFSET_INDEX + x)
 
 void generate_frames(Scene *scene, int frames_amount){
 
@@ -14,38 +12,20 @@ void generate_frames(Scene *scene, int frames_amount){
 			scene[x].rgb_value[i] = (RGB_Value){rand() % 255, rand() % 255, rand() % 255};
 		}
 
-		if(x < (int)(frames_amount/6)*1){
-			/*frames[x].route = ((uint64_t)3) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)2) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)2) << 62;*/
-			scene[x].destination = (Vector2){0,2};
-		}else if(x < (int)(frames_amount/6)*2){
-			/*frames[x].route = ((uint64_t)3) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)1) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)2) << 62;*/
-			scene[x].destination = (Vector2){1,0};
-		}else if(x < (int)(frames_amount/6)*3){
-			/*frames[x].route = ((uint64_t)3) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)1) << 62;*/
-			scene[x].destination = (Vector2){1,1};
-		}else if(x < (int)(frames_amount/6)*4){
-			/*frames[x].route = ((uint64_t)3) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)1) << 62;*/
-			scene[x].destination = (Vector2){0,2};
-		}else if(x < (int)(frames_amount/6)*5){
-			/*frames[x].route = ((uint64_t)3) << 62;
-			frames[x].route >>= 2;
-			frames[x].route |= ((uint64_t)2) << 62;*/
-			scene[x].destination = (Vector2){0,1};
-		}else if(x < (int)(frames_amount)){
-			//frames[x].route = ((uint64_t)3) << 62;
+		if(x%5 == 0){
 			scene[x].destination = (Vector2){0,0};
+		}else if(x%5 == 1){
+
+			scene[x].destination = (Vector2){0,1};
+		}else if(x%5 == 2){
+
+			scene[x].destination = (Vector2){0,2};
+		}else if(x%5 == 3){
+
+			scene[x].destination = (Vector2){1,1};
+		}else if(x%5 == 4){
+
+			scene[x].destination = (Vector2){1,0};
 		}
 	}
 }
@@ -80,7 +60,6 @@ void calculate_slidding_window_average(Topology_node *node){
 	for(int i = 0; i < 5; i++){
 		sum += node->slidding_window[i];
 	}
-	//__asm__("int $3");
 	node->node_cost = sum/5;
 }
 
@@ -302,8 +281,8 @@ void* controller_main(void* controller_args){
 	Frame *master_frames = (Frame*) malloc(sizeof(Frame) * frame_size);
 	Topology_node *topology = (Topology_node*)malloc(sizeof(Topology_node) * (MIDDLE_OFFSET_INDEX * 2 * MIDDLE_OFFSET_INDEX * 2));
 	
-	for(int y = 0; y < MIDDLE_OFFSET_INDEX * 2; y++){
-		for(int x = 0; x < MIDDLE_OFFSET_INDEX * 2; x++){
+	for(int y = -MIDDLE_OFFSET_INDEX; y < MIDDLE_OFFSET_INDEX; y++){
+		for(int x = -MIDDLE_OFFSET_INDEX; x < MIDDLE_OFFSET_INDEX; x++){
 			int index = offset_topology(x, y);
 			topology[index].node_available = 0;
 			if(x == 0 && y == 0){
@@ -328,11 +307,11 @@ void* controller_main(void* controller_args){
 		master_propegate_frame(master, master_frames, frame_size, &frame_index);
 		node_controller(hp, args->nodes_amount, frame);
 		
-		TraceLog(LOG_INFO, "(0,0): %f", topology[offset_topology(0,0)].node_cost);
+		/*TraceLog(LOG_INFO, "(0,0): %f", topology[offset_topology(0,0)].node_cost);
 		TraceLog(LOG_INFO, "(0,1): %f", topology[offset_topology(0,1)].node_cost);
 		TraceLog(LOG_INFO, "(0,2): %f", topology[offset_topology(0,2)].node_cost);
 		TraceLog(LOG_INFO, "(1,1): %f", topology[offset_topology(1,1)].node_cost);
-		TraceLog(LOG_INFO, "(1,0): %f", topology[offset_topology(1,0)].node_cost);
+		TraceLog(LOG_INFO, "(1,0): %f", topology[offset_topology(1,0)].node_cost);*/
 	}
 }
 
@@ -504,7 +483,6 @@ void node_controller(HexagonPanel *nodes, int nodes_amount, Frame *frame){
 		for(int x = 0; x < 3; x++){
 			if(ring_buffer_is_empty(nodes[i].buffer_in[x])) continue;
 			ring_buffer_pop(nodes[i].buffer_in[x], frame, &type);
-	
 			int edge = forward_process_frame(&nodes[i], frame);
 			if(edge != 3){
 				ring_buffer_push(nodes[i].peer_out[edge]->buffer_in[edge], (BufferData*) frame, TYPE_FRAME);
